@@ -6,9 +6,10 @@ Feel free to put all your game code here, or in other modules in this "gamelib"
 package.
 '''
 
+import json
+import pygame
 import data
 import engine
-import pygame
 
 class Game(object):
     '''A class that delegates its engine functionalities to a hot-swappable
@@ -58,7 +59,8 @@ class Game(object):
             self.simulate_error = None
         except Exception as error:
             if self.simulate_error != error.message:
-                print("Unable to render, reason: {0}".format(error.message))
+                print("Unable to render, reason:")
+                print(error)
                 self.simulate_error = error.message
 
     def render(self):
@@ -72,6 +74,7 @@ class Game(object):
                 self.render_error = error.message
 
     def quit(self):
+        self.dump_data()
         self.running = False
 
     def request_swap(self):
@@ -80,11 +83,35 @@ class Game(object):
             reload(engine)
             print("Engine swapped. Reinitializing engine...")
             engine.init()
-            print("Engine reinitialized")
-            print("")
+            print("Engine reinitialized\n")
         except Exception as error:
-            print("Errors were thrown in the engine swap:\n{0}".format(error))
+            print("Errors were thrown in the engine swap:")
+            print(error)
+
+    def dump_data(self):
+        print("Saving the gamestate...")
+        try:
+            with open("gamestate.json", "wt") as fout:
+                json_data = json.dumps(self.data, indent=4)
+                print(json_data)
+                fout.write(json_data)
+                print("Gamestate saved\n")
+        except Exception as error:
+            print("Unable to dump the data, reason:")
+            print(error)
+
+    def load_data(self):
+        print("Restoring the gamestate...")
+        try:
+            with open("gamestate.json", "rt") as fin:
+                new_data = json.load(fin)
+                self.data = new_data
+                print("Gamestate restored")
+        except Exception as error:
+            print("Unable to load the data, reason:")
+            print(error)
 
 def main():
     game = Game()
+    game.load_data()
     game.run()

@@ -18,13 +18,31 @@ def init():
 
 def handle_input(game, data):
     for event in pygame.event.get():
-        if event.type == pygame.QUIT: return game.quit()
-        if event.type == pygame.KEYDOWN and event.key == pygame.K_F5:
-            return swap(game, data)
-        if event.type == pygame.KEYDOWN: return handle_key(game, data, event)
+        ########################################
+        # Handle some very special cases first #
+        ########################################
+
+        # Always let the user quit
+        if event.type == pygame.QUIT:
+            return game.quit()
+
+        # Swap handling and data dump / reload
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_F1: return handle_swap(game, data)
+            if event.key == pygame.K_F5: return game.dump_data()
+            if event.key == pygame.K_F9: return game.load_data()
+
+        # Check if we're in different gamestates and delegate input handle to
+        if event.type == pygame.KEYDOWN:
+            return handle_key(game, data, event)
+
+        # If we got this far then we got no idea what we're handling with
+        print("Unrecognized event: {0}".format(event))
 
 def handle_key(game, data, event):
-    if event.key == pygame.K_F5: return swap(game, data)
+    if (data["gamestate"] == "title"):
+        return titlescreen.handle_key(game, data, event)
+
     print("Key pressed:", event)
 
 def simulate(game, data, dt):
@@ -33,27 +51,25 @@ def simulate(game, data, dt):
 def render(data):
     if (data["gamestate"] == "title"): return titlescreen.render(data)
 
-def swap(game, data):
+def handle_swap(game, data):
     try:
         print("Attempting to swap titlescreen")
         reload(titlescreen)
-        print("titlescreen swapped")
-        print("")
+        print("titlescreen swapped\n")
     except Exception as error:
-        print("Unable to swap the titlescreen, reason: {0}".format(error))
+        print("Unable to swap the titlescreen, reason:")
+        print(error)
 
     upgrade_data(data)
     game.request_swap()
 
 def upgrade_data(data):
     try:
-        print("Upgrading the game data")
-        print("Old data:")
+        print("Upgrading the game data. Old data:")
         print(data)
-        print("")
         if "gamestate" not in data:
             data["gamestate"] = "title"
-        print("The new data:")
+        print("\nThe new data:")
         print(data)
         print("")
     except Exception as error:
