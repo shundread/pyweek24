@@ -46,7 +46,8 @@ def handle_key(game, data, event):
     print("Key pressed:", event)
 
 def simulate(game, data, dt):
-    pass
+    if (data["gamestate"] == "title"):
+        return titlescreen.simulate(game, data, dt)
 
 def render(data):
     if (data["gamestate"] == "title"): return titlescreen.render(data)

@@ -41,7 +41,7 @@ class Game(object):
                 continue
             self.simulate(dt)
             self.render()
-            clock.tick(self.FPS)
+            dt = clock.tick(self.FPS)
 
     def handle_input(self):
         try:
