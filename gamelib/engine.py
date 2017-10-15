@@ -41,25 +41,28 @@ def handle_input(game, data):
 
 def handle_key(game, data, event):
     if (data["gamestate"] == "title"):
-        return titlescreen.handle_key(game, data, event)
+        return titlescreen.handle_key(game, data["title"], event)
 
     print("Key pressed:", event)
 
 def simulate(game, data, dt):
     if (data["gamestate"] == "title"):
-        return titlescreen.simulate(game, data, dt)
+        return titlescreen.simulate(game, data["title"], dt)
 
 def render(data):
-    if (data["gamestate"] == "title"): return titlescreen.render(data)
+    if (data["gamestate"] == "title"):
+        return titlescreen.render(data["title"])
 
 def handle_swap(game, data):
     try:
         print("Attempting to swap titlescreen")
         reload(titlescreen)
+        titlescreen.handle_swap(game)
         print("titlescreen swapped\n")
     except Exception as error:
         print("Unable to swap the titlescreen, reason:")
         print(error)
+        return
 
     upgrade_data(data)
     game.request_swap()

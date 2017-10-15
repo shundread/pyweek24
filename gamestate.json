@@ -1,6 +1,11 @@
 {
     "gamestate": "title", 
     "title": {
-        "frame": 1448
+        "miliseconds": 7970, 
+        "background_color": [
+            255, 
+            255, 
+            255
+        ]
     }
 }
