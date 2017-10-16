@@ -2,11 +2,13 @@
 
 import pygame
 import titlescreen
+import play
 
 def init():
     try:
         pygame.init()
         pygame.display.set_mode((600, 600))
+        pygame.display.get_surface().fill((0, 0, 0))
         pygame.event.set_allowed(None)
         pygame.event.set_allowed([
             pygame.QUIT,
@@ -44,27 +46,40 @@ def handle_key(game, data, event):
     gamestate = data["gamestate"]
     if (gamestate == "title"):
         return titlescreen.handle_key(game, data["title"], event)
-    if (gamestate == "newgame"):
-        data["gamestate"] = "newtitle"
+    if (gamestate == "game"):
+        return play.handle_key(game, data["game"], event)
 
 def simulate(game, data, dt):
     gamestate = data["gamestate"]
     if (gamestate == "newtitle"):
         data["title"] = titlescreen.reset_data()
+        titlescreen.init()
         data["gamestate"] = "title"
     if (gamestate == "title"):
         return titlescreen.simulate(game, data["title"], dt)
+    if (gamestate == "newgame"):
+        data["game"] = play.reset_data()
+        play.init()
+        data["gamestate"] = "game"
+    if (gamestate == "game"):
+        return play.simulate(game, data["game"], dt)
 
 def render(data):
-    if (data["gamestate"] == "title"):
+    gamestate = data["gamestate"]
+    if (gamestate == "title"):
         return titlescreen.render(data["title"])
+    if (gamestate == "game"):
+        return play.render(data["game"])
 
 def handle_swap(game, data):
     try:
-        print("Attempting to swap titlescreen")
+        print("Attempting to swap titlescreen module")
         reload(titlescreen)
         titlescreen.handle_swap(game)
         print("titlescreen swapped\n")
+        print("Attempting to swap play module")
+        reload(play)
+        play.handle_swap(game)
     except Exception as error:
         print("Unable to swap the titlescreen, reason:")
         print(error)

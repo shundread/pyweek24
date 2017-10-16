@@ -1,7 +1,14 @@
 {
+    "game": {
+        "miliseconds": 5476640, 
+        "position": {
+            "y": 78, 
+            "x": 80
+        }
+    }, 
     "gamestate": "title", 
     "title": {
-        "miliseconds": 7970, 
+        "miliseconds": 651771, 
         "background_color": [
             255, 
             255, 
