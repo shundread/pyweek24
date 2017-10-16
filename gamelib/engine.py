@@ -6,12 +6,13 @@ import titlescreen
 def init():
     try:
         pygame.init()
-        pygame.display.set_mode((400, 400))
+        pygame.display.set_mode((600, 600))
         pygame.event.set_allowed(None)
         pygame.event.set_allowed([
             pygame.QUIT,
             pygame.KEYDOWN,
         ])
+        titlescreen.init()
     except Exception as error:
         print("Unable to (re) initialize the module, reason:\n{0}".format(error))
 
@@ -40,13 +41,18 @@ def handle_input(game, data):
         print("Unrecognized event: {0}".format(event))
 
 def handle_key(game, data, event):
-    if (data["gamestate"] == "title"):
+    gamestate = data["gamestate"]
+    if (gamestate == "title"):
         return titlescreen.handle_key(game, data["title"], event)
-
-    print("Key pressed:", event)
+    if (gamestate == "newgame"):
+        data["gamestate"] = "newtitle"
 
 def simulate(game, data, dt):
-    if (data["gamestate"] == "title"):
+    gamestate = data["gamestate"]
+    if (gamestate == "newtitle"):
+        data["title"] = titlescreen.reset_data()
+        data["gamestate"] = "title"
+    if (gamestate == "title"):
         return titlescreen.simulate(game, data["title"], dt)
 
 def render(data):
