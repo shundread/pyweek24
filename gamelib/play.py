@@ -22,8 +22,12 @@ resources = {}
 def init():
     screen = pygame.display.get_surface()
     resources["scatter"] = numpy.random.random(Size)
-    resources["light"] = pygame.surface.Surface(Size)
     resources["realworld"] = pygame.surface.Surface(Size)
+
+    resources["light"] = pygame.surface.Surface(Size)
+    resources["light"].convert()
+    resources["light"].set_colorkey(Black)
+
     resources["hud"] = pygame.surface.Surface(Size)
 
     resources["vision"] = pygame.surface.Surface(Size)
@@ -66,18 +70,17 @@ def render(data):
         )
     ])
 
+    # Apply the light to the surface
+    realworld.blit(light, (0, 0))
+
     vision = resources["vision"]
     scatter = resources["scatter"]
     numpy.random.shuffle(scatter)
     for x in range(Width):
         for y in range(Height):
             if scatter[x, y] < Pass:
-                p = (x, y)
-                if light.get_at(p) == White:
-                    vision.set_at(p, White)
-                else:
-                    color = realworld.get_at(p)
-                    vision.set_at(p, color)
+                color = realworld.get_at((x, y))
+                vision.set_at((x, y), color)
 
     screen = pygame.display.get_surface()
     pygame.transform.scale(vision, screen.get_size(), screen)

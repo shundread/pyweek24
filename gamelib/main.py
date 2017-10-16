@@ -34,6 +34,7 @@ class Game(object):
         clock = pygame.time.Clock()
         self.running = True
         dt = 0
+        frames = 0
         while self.running:
             self.handle_input()
             if self.swapped:
@@ -42,6 +43,12 @@ class Game(object):
             self.simulate(dt)
             self.render()
             dt = clock.tick(self.FPS)
+            frames += 1
+
+        # Report framerate on exit
+        ticks = pygame.time.get_ticks()
+        framerate = frames / (ticks / 1000.0)
+        print("Framerate was {0}".format(framerate))
 
     def handle_input(self):
         try:

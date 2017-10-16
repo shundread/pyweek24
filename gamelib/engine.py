@@ -16,6 +16,7 @@ def init():
             pygame.MOUSEMOTION
         ])
         titlescreen.init()
+        play.init()
     except Exception as error:
         print("Unable to (re) initialize the module, reason:\n{0}".format(error))
 
