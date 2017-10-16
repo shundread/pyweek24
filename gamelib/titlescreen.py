@@ -1,12 +1,13 @@
 import pygame
-import tween
 import random
+import numpy
 
 resources = {}
 
 Black = (0, 0, 0)
 White = (255, 255, 255)
 Size = (Width, Height) = (200, 200)
+Pass = 0.25
 
 def reset_data():
     return {
@@ -16,6 +17,7 @@ def reset_data():
 def init():
     screen = pygame.display.get_surface()
 
+    resources["scatter"] = numpy.random.random(Size)
     resources["vision"] = pygame.surface.Surface(Size)
     pygame.transform.scale(screen, Size, resources["vision"])
 
@@ -83,7 +85,7 @@ def handle_key(game, data, event):
         game.data["gamestate"] = "newgame"
 
 FadeInQuote = 1000
-FadeOutQuote = FadeInQuote + 9000
+FadeOutQuote = FadeInQuote + 5000
 
 def simulate(game, data, dt):
     data["miliseconds"] += dt
@@ -100,17 +102,18 @@ def render(data):
     (width, height) = vision.get_size()
 
     realworld = resources["realworld"]
-    for p in range(200):
-        x = random.randint(0, width - 1)
-        y = random.randint(0, height - 1)
-        color = realworld.get_at((x, y))
-        vision.set_at((x, y), color)
+    scatter = resources["scatter"]
+    numpy.random.shuffle(scatter)
+    for x in range(Width):
+        for y in range(Height):
+            if scatter[x, y] < Pass:
+                color = realworld.get_at((x, y))
+                vision.set_at((x, y), color)
 
     screen = pygame.display.get_surface()
     pygame.transform.scale(vision, screen.get_size(), screen)
     pygame.display.flip()
 
 def handle_swap(game):
-    reload(tween)
     init()
     game.data["title"] = reset_data()
