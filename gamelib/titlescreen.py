@@ -6,76 +6,105 @@ resources = {}
 
 Black = (0, 0, 0)
 White = (255, 255, 255)
+Size = (Width, Height) = (200, 200)
 
 def reset_data():
     return {
         "miliseconds": 0,
-        "background_color": Black,
     }
 
 def init():
     screen = pygame.display.get_surface()
 
-    size = (width, height) = (200, 200)
-    resources["vision"] = pygame.surface.Surface(size)
-    pygame.transform.scale(screen, size, resources["vision"])
+    resources["vision"] = pygame.surface.Surface(Size)
+    pygame.transform.scale(screen, Size, resources["vision"])
+
+    ###########################
+    # Render the black screen #
+    ###########################
+    resources["black"] = pygame.surface.Surface(Size)
+    resources["black"].fill(Black)
 
     ################################
     # Render the real title screen #
     ################################
-    realworld = pygame.surface.Surface(size)
-    realworld.fill(White)
+    title = pygame.surface.Surface(Size)
+    title.fill(White)
 
     # Game title
-    title = pygame.image.load("data/titleC.png").convert_alpha()
-    titlewidth = title.get_width()
-    titlex = int((width - titlewidth) * 0.5)
-    titley = int(height * 0.25)
-    realworld.blit(title, (titlex, titley))
+    banner = pygame.image.load("data/titleC.png").convert_alpha()
+    bannerwidth = banner.get_width()
+    bannerx = int((Width - bannerwidth) * 0.5)
+    bannery = int(Height * 0.25)
+    title.blit(banner, (bannerx, bannery))
 
     # Game instructions
     font = pygame.font.SysFont("mono", 12, bold=True)
     lines = [
         "move around with 'WASD'",
+        "aim flashlight with mouse",
         "interact with 'E'",
-        "fire with space",
         "",
         "press 'x' to start"
     ]
     for (n, line) in enumerate(lines):
         text = font.render(line, False, Black)
         (w, h) = text.get_size()
-        x = int((width - w) * 0.5)
-        y = int(height * 0.6) + (n * h)
-        realworld.blit(text, (x, y))
+        x = int((Width - w) * 0.5)
+        y = int(Height * 0.6) + (n * h)
+        title.blit(text, (x, y))
 
-    resources["realworld"] = realworld
+    resources["title"] = title
+
+    ############################
+    # Render the opening quote #
+    ############################
+    quote = pygame.surface.Surface(Size)
+    quote.fill(Black)
+    lines = [
+        "\"family means no one",
+        "gets left behind or",
+        "forgotten\"",
+        "",
+        "-David Ogden Stiers"
+    ]
+    for (n, line) in enumerate(lines):
+        text = font.render(line, False, White)
+        (w, h) = text.get_size()
+        x = int((Width - w) * 0.5)
+        y = int(Height * 0.3) + (n * h)
+        quote.blit(text, (x, y))
+
+    resources["quote"] = quote
+    resources["realworld"] = quote
 
 def handle_key(game, data, event):
     if (event.key == pygame.K_x):
         game.data["gamestate"] = "newgame"
 
-FadeIn = 4000.0
+FadeInQuote = 1000
+FadeOutQuote = FadeInQuote + 9000
 
 def simulate(game, data, dt):
     data["miliseconds"] += dt
 
+    if data["miliseconds"] < FadeInQuote:
+        resources["realworld"] = resources["black"]
+    elif data["miliseconds"] < FadeOutQuote:
+        resources["realworld"] = resources["quote"]
+    else:
+        resources["realworld"] = resources["title"]
+
 def render(data):
     vision = resources["vision"]
     (width, height) = vision.get_size()
-    if data["miliseconds"] < FadeIn:
-        for p in range(200):
-            x = random.randint(0, width - 1)
-            y = random.randint(0, height - 1)
-            vision.set_at((x, y), Black)
 
-    else:
-        realworld = resources["realworld"]
-        for p in range(200):
-            x = random.randint(0, width - 1)
-            y = random.randint(0, height - 1)
-            color = realworld.get_at((x, y))
-            vision.set_at((x, y), color)
+    realworld = resources["realworld"]
+    for p in range(200):
+        x = random.randint(0, width - 1)
+        y = random.randint(0, height - 1)
+        color = realworld.get_at((x, y))
+        vision.set_at((x, y), color)
 
     screen = pygame.display.get_surface()
     pygame.transform.scale(vision, screen.get_size(), screen)

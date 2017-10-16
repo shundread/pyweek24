@@ -5,6 +5,7 @@ resources = {}
 
 Black = (0, 0, 0)
 White = (255, 255, 255)
+Size = (Width, Height) = (200, 200)
 
 def reset_data():
     return {
