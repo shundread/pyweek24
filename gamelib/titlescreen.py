@@ -1,8 +1,5 @@
 import pygame
-import random
 import numpy
-
-resources = {}
 
 Black = (0, 0, 0)
 White = (255, 255, 255)
@@ -13,6 +10,8 @@ def reset_data():
     return {
         "miliseconds": 0,
     }
+
+resources = {}
 
 def init():
     screen = pygame.display.get_surface()

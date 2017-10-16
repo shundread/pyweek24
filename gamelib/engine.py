@@ -13,6 +13,7 @@ def init():
         pygame.event.set_allowed([
             pygame.QUIT,
             pygame.KEYDOWN,
+            pygame.MOUSEMOTION
         ])
         titlescreen.init()
     except Exception as error:
@@ -40,6 +41,8 @@ def handle_input(game, data):
             return handle_key(game, data, event)
 
         # If we got this far then we got no idea what we're handling with
+        if event.type == pygame.MOUSEMOTION:
+            return
         print("Unrecognized event: {0}".format(event))
 
 def handle_key(game, data, event):
