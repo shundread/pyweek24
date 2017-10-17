@@ -19,6 +19,7 @@ def init():
         play.init()
     except Exception as error:
         print("Unable to (re) initialize the module, reason:\n{0}".format(error))
+        raise error
 
 
 def handle_input(game, data):
@@ -64,6 +65,7 @@ def simulate(game, data, dt):
     if (gamestate == "newgame"):
         data["game"] = play.reset_data()
         play.init()
+        play.generate_map(data["game"])
         data["gamestate"] = "game"
     if (gamestate == "game"):
         return play.simulate(game, data["game"], dt)
@@ -85,9 +87,9 @@ def handle_swap(game, data):
         reload(play)
         play.handle_swap(game)
     except Exception as error:
-        print("Unable to swap the titlescreen, reason:")
+        print("Unable to swap the submodules, reason:")
         print(error)
-        return
+        raise error
 
     upgrade_data(data)
     game.request_swap()
@@ -103,3 +105,4 @@ def upgrade_data(data):
         print("")
     except Exception as error:
         print("Unable to upgrade the data, reason: {0}".format(error))
+        raise error

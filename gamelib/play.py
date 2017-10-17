@@ -1,6 +1,7 @@
 import pygame
 import numpy
 import math
+import random
 
 Black = (0, 0, 0)
 White = (255, 255, 255)
@@ -33,9 +34,45 @@ def init():
     resources["vision"] = pygame.surface.Surface(Size)
     pygame.transform.scale(screen, Size, resources["vision"])
 
+MinimumBuildings = 4
+MaximumBuildings = 7
+LotSize = (LotWidth, LotHeight) = (10, 10)
+TileSize = (TileWidth, TileHeight) = (2, 2)
+def generate_map(game_data):
+    area = {}
+
+    # Generate the lot "vacancies" and shuffle them for assignment of the areas
+    vacant_lots = []
+    for lotx in [-1, 0, 1]:
+        for loty in [-1, 0, 1]:
+            vacant_lots.append((lotx, loty))
+    random.shuffle(vacant_lots)
+
+    # Pick lots at random and generate buildings on them
+    n_buildings = random.randint(MinimumBuildings, MaximumBuildings)
+    buildings = []
+    for b in range(n_buildings):
+        (x, y) = vacant_lots.pop()
+        # TODO store polygons
+        buildings.append((
+            x * LotWidth * TileWidth,
+            y * LotHeight * TileHeight,
+            int(LotWidth * 0.8) * TileWidth,
+            int(LotHeight * 0.8) * TileHeight
+        ))
+    area["buildings"] = buildings
+
+    # Generate open area on the remaining lots
+    while len(vacant_lots) > 0:
+        lot = vacant_lots.pop()
+
+    game_data["map"] = area
+
 def handle_key(game, data, event):
     if (event.key == pygame.K_ESCAPE):
         game.data["gamestate"] = "newtitle"
+    if (event.key == pygame.K_m):
+        generate_map(data)
 
 def simulate(game, data, dt):
     data["miliseconds"] += dt
@@ -50,8 +87,12 @@ def render(data):
     # Renders the real world
     realworld = resources["realworld"]
     realworld.fill(Black)
-    position = (data["position"]["x"], data["position"]["y"])
-    pygame.draw.rect(realworld, White, (position, (20, 20)))
+    ppos = (px, py) = (data["position"]["x"], data["position"]["y"])
+
+    area_map = data["map"]
+    for building in area_map["buildings"]:
+        (x, y, w, h) = building
+        pygame.draw.rect(realworld, White, (x - px, y - py, w, h))
 
     # Renders the light surface
     center = (middlex, middley) = (Width * 0.5, Height * 0.5)
@@ -71,7 +112,7 @@ def render(data):
     ])
 
     # Apply the light to the surface
-    realworld.blit(light, (0, 0))
+    # realworld.blit(light, (0, 0))
 
     screen = pygame.display.get_surface()
     pygame.transform.scale(realworld, screen.get_size(), screen)
