@@ -125,13 +125,13 @@ def generate_building(centerx, centery, width, height):
             next_rooms.extend([room_a, room_b])
         rooms = next_rooms
 
-    floors = generate_floors(rooms)
+    floors = generate_floors(building, rooms)
     doors = generate_doors(building, rooms)
-    windows = generate_windows(rooms, doors)
-    walls = generate_walls(rooms, doors, windows)
+    windows = generate_windows(building, rooms, doors)
+    walls = generate_walls(building, rooms, doors, windows)
     return { "walls": walls, "doors": doors, "windows": windows, "floors": floors }
 
-def generate_floors(rooms):
+def generate_floors(building, rooms):
     return []
 
 ExtraExitChance = 35 # Chance of a room having an extra non-essential exit
@@ -197,14 +197,82 @@ def generate_doors(building, rooms):
                     else:
                         connected.append(i)
                     break
-        # Skip iterating for now
+        # Strip isolated rooms from the isolated list
         isolated = [r for r in isolated if r not in connected]
     return doors
 
-def generate_windows(rooms, doors):
-    return []
+WindowChance = 50
+HalfWindowLength = int(math.ceil(DoorLength * 0.5))
+def generate_windows(building, rooms, doors):
+    windows = []
+    external_rooms = []
+    for room in rooms:
+        if room.left == building.left \
+        or room.right == building.right \
+        or room.top == building.top \
+        or room.bottom == building.bottom:
+            external_rooms.append(room)
 
-def generate_walls(rooms, doors, windows):
+    external_doors = []
+    for door in doors:
+        if door[0] == door[2] == building.left \
+        or door[0] == door[2] == building.right \
+        or door[1] == door[3] == building.top \
+        or door[1] == door[3] == building.bottom:
+            external_doors.append(door)
+
+    for room in external_rooms:
+        if room.left == building.left:
+            canplace = True
+            for door in external_doors:
+                if door [0] == door[2] == building.left:
+                    canplace = False
+                    break
+            if canplace and random.randint(0, 100) < WindowChance:
+                x = room.left
+                y0 = room.centery - HalfWindowLength
+                y1 = room.centery + HalfWindowLength
+                windows.append([x, y0, x, y1])
+
+        if room.right == building.right:
+            canplace = True
+            for door in external_doors:
+                if door [0] == door[2] == building.right:
+                    canplace = False
+                    break
+            if canplace and random.randint(0, 100) < WindowChance:
+                x = room.right
+                y0 = room.centery - HalfWindowLength
+                y1 = room.centery + HalfWindowLength
+                windows.append([x, y0, x, y1])
+
+        if room.top == building.top:
+            canplace = True
+            for door in external_doors:
+                if door [1] == door[3] == building.top:
+                    canplace = False
+                    break
+            if canplace and random.randint(0, 100) < WindowChance:
+                y = room.top
+                x0 = room.centerx - HalfWindowLength
+                x1 = room.centerx + HalfWindowLength
+                windows.append([x0, y, x1, y])
+
+        if room.bottom == building.bottom:
+            canplace = True
+            for door in external_doors:
+                if door [1] == door[3] == building.bottom:
+                    canplace = False
+                    break
+            if canplace and random.randint(0, 100) < WindowChance:
+                y = room.bottom
+                x0 = room.centerx - HalfWindowLength
+                x1 = room.centerx + HalfWindowLength
+                windows.append([x0, y, x1, y])
+
+    return windows
+
+def generate_walls(building, rooms, doors, windows):
     return rooms
 
 def handle_key(game, data, event):
@@ -236,6 +304,11 @@ def render(data):
     for door in area_map["buildings"]["doors"]:
         (x0, y0, x1, y1) = door
         pygame.draw.line(realworld, ColorDoor, (x0 - px, y0 - py), (x1 - px, y1 - py))
+
+    for door in area_map["buildings"]["windows"]:
+        (x0, y0, x1, y1) = door
+        pygame.draw.line(realworld, (0, 0, 255), (x0 - px, y0 - py), (x1 - px, y1 - py))
+
 
     # Renders the light surface
     center = (middlex, middley) = (Width * 0.5, Height * 0.5)
