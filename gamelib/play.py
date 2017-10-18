@@ -34,10 +34,8 @@ def init():
     resources["vision"] = pygame.surface.Surface(Size)
     pygame.transform.scale(screen, Size, resources["vision"])
 
-#MinimumBuildings = 10
-#MaximumBuildings = 20
-MinimumBuildings = 1
-MaximumBuildings = 1
+MinimumBuildings = 10
+MaximumBuildings = 20
 MinimumRooms = 2
 MaximumRooms = 4
 LotSize = (LotWidth, LotHeight) = (100, 100)
@@ -46,10 +44,8 @@ def generate_map(game_data):
 
     # Generate the lot "vacancies" and shuffle them for assignment of the areas
     vacant_lots = []
-#    for lotx in [-2, -1, 0, 1, 2]:
-#        for loty in [-2, -1, 0, 1, 2]:
-    for lotx in [0]:
-        for loty in [0]:
+    for lotx in [-2, -1, 0, 1, 2]:
+        for loty in [-2, -1, 0, 1, 2]:
             vacant_lots.append((lotx, loty))
     random.shuffle(vacant_lots)
 
@@ -68,7 +64,9 @@ def generate_map(game_data):
         # Set the corridor size to cover ~50/70% of the lot
         cwidth = int(random.randint(55, 85) * 0.01 * LotWidth)
         cheight = int(random.randint(55, 85) * 0.01 * LotHeight)
-        building = generate_building(cwidth, cheight)
+        ccenterx = lot.centerx + int(random.randint(-10, 10) * 0.01 * LotWidth)
+        ccentery = lot.centery + int(random.randint(-10, 10) * 0.01 * LotHeight)
+        building = generate_building(ccenterx, ccentery, cwidth, cheight)
 
         buildings.extend(building)
 
@@ -81,8 +79,8 @@ def generate_map(game_data):
     game_data["map"] = area
 
 SplitLimit = int(0.3 * LotWidth) # Stop splitting rooms at this size
-def generate_building(width, height):
-    rooms = [pygame.rect.Rect((0, 0), (width, height))]
+def generate_building(centerx, centery, width, height):
+    rooms = [pygame.rect.Rect((centerx, centery), (width, height))]
     splitting = True
     while splitting:
         splitting = False
@@ -94,7 +92,7 @@ def generate_building(width, height):
                 continue
 
             splitting = True
-            percentage = random.randint(30, 70)
+            percentage = random.randint(35, 65)
             horizontal = random.random() < (float(room.width) /  float(room.width + room.height))
             if horizontal:
                 room_a = pygame.rect.Rect(room.topleft, (int(room.width * percentage * 0.01), room.height))
