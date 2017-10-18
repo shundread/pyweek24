@@ -34,17 +34,22 @@ def init():
     resources["vision"] = pygame.surface.Surface(Size)
     pygame.transform.scale(screen, Size, resources["vision"])
 
-MinimumBuildings = 4
-MaximumBuildings = 7
-LotSize = (LotWidth, LotHeight) = (10, 10)
-TileSize = (TileWidth, TileHeight) = (2, 2)
+#MinimumBuildings = 10
+#MaximumBuildings = 20
+MinimumBuildings = 1
+MaximumBuildings = 1
+MinimumRooms = 2
+MaximumRooms = 4
+LotSize = (LotWidth, LotHeight) = (100, 100)
 def generate_map(game_data):
     area = {}
 
     # Generate the lot "vacancies" and shuffle them for assignment of the areas
     vacant_lots = []
-    for lotx in [-1, 0, 1]:
-        for loty in [-1, 0, 1]:
+#    for lotx in [-2, -1, 0, 1, 2]:
+#        for loty in [-2, -1, 0, 1, 2]:
+    for lotx in [0]:
+        for loty in [0]:
             vacant_lots.append((lotx, loty))
     random.shuffle(vacant_lots)
 
@@ -52,14 +57,21 @@ def generate_map(game_data):
     n_buildings = random.randint(MinimumBuildings, MaximumBuildings)
     buildings = []
     for b in range(n_buildings):
-        (x, y) = vacant_lots.pop()
+        # Get the lot's X, Y index
+        (lotx, loty) = vacant_lots.pop()
         # TODO store polygons
-        buildings.append((
-            x * LotWidth * TileWidth,
-            y * LotHeight * TileHeight,
-            int(LotWidth * 0.8) * TileWidth,
-            int(LotHeight * 0.8) * TileHeight
-        ))
+
+        # Scale the lot's coordinates
+        lot = pygame.rect.Rect(0, 0, LotWidth, LotHeight)
+        lot.center = (lotx * LotWidth, loty * LotHeight)
+
+        # Set the corridor size to cover ~50/70% of the lot
+        cwidth = int(random.randint(55, 85) * 0.01 * LotWidth)
+        cheight = int(random.randint(55, 85) * 0.01 * LotHeight)
+        building = generate_building(cwidth, cheight)
+
+        buildings.extend(building)
+
     area["buildings"] = buildings
 
     # Generate open area on the remaining lots
@@ -67,6 +79,35 @@ def generate_map(game_data):
         lot = vacant_lots.pop()
 
     game_data["map"] = area
+
+SplitLimit = int(0.3 * LotWidth) # Stop splitting rooms at this size
+def generate_building(width, height):
+    rooms = [pygame.rect.Rect((0, 0), (width, height))]
+    splitting = True
+    while splitting:
+        splitting = False
+        next_rooms = []
+        for room in rooms:
+            if room.width < SplitLimit \
+            or room.height < SplitLimit:
+                next_rooms.append(room)
+                continue
+
+            splitting = True
+            percentage = random.randint(30, 70)
+            horizontal = random.random() < (float(room.width) /  float(room.width + room.height))
+            if horizontal:
+                room_a = pygame.rect.Rect(room.topleft, (int(room.width * percentage * 0.01), room.height))
+                room_b = pygame.rect.Rect(room_a.topright, (room.width - room_a.width, room.height))
+                next_rooms.extend([room_a, room_b])
+            else:
+                room_a = pygame.rect.Rect(room.topleft, (room.width, int(room.height * percentage * 0.01)))
+                room_b = pygame.rect.Rect(room_a.bottomleft, (room.width, room.height - room_a.height))
+                next_rooms.extend([room_a, room_b])
+        rooms = next_rooms
+
+    print("Rooms is {0}".format(rooms))
+    return rooms
 
 def handle_key(game, data, event):
     if (event.key == pygame.K_ESCAPE):
@@ -92,7 +133,7 @@ def render(data):
     area_map = data["map"]
     for building in area_map["buildings"]:
         (x, y, w, h) = building
-        pygame.draw.rect(realworld, White, (x - px, y - py, w, h))
+        pygame.draw.rect(realworld, White, (x - px, y - py, w, h), 1)
 
     # Renders the light surface
     center = (middlex, middley) = (Width * 0.5, Height * 0.5)
