@@ -38,11 +38,14 @@ def init():
     resources["vision"] = pygame.surface.Surface(Size)
     pygame.transform.scale(screen, Size, resources["vision"])
 
+def generate_map(data):
+    mapgenerator.generate_map(data)
+
 def handle_key(game, data, event):
     if (event.key == pygame.K_ESCAPE):
         game.data["gamestate"] = "newtitle"
     if (event.key == pygame.K_m):
-        mapgenerator.generate_map(data)
+        generate_map(data)
 
 def simulate(game, data, dt):
     data["miliseconds"] += dt
@@ -60,16 +63,21 @@ def render(data):
     ppos = (px, py) = (data["position"]["x"], data["position"]["y"])
 
     area_map = data["map"]
-    for building in area_map["buildings"]["walls"]:
-        (x, y, w, h) = building
-        pygame.draw.rect(realworld, White, (x - px, y - py, w, h), 1)
+
+    for room in area_map["buildings"]["floors"]:
+        (x, y, w, h, r, g, b) = room
+        pygame.draw.rect(realworld, (r, g, b), ((x - px, y - py), (w, h)))
+
+    for wall in area_map["buildings"]["walls"]:
+        (x0, y0, x1, y1) = wall
+        pygame.draw.line(realworld, White, (x0 - px, y0 - py), (x1 - px, y1 - py))
 
     for door in area_map["buildings"]["doors"]:
         (x0, y0, x1, y1) = door
         pygame.draw.line(realworld, ColorDoor, (x0 - px, y0 - py), (x1 - px, y1 - py))
 
-    for door in area_map["buildings"]["windows"]:
-        (x0, y0, x1, y1) = door
+    for window in area_map["buildings"]["windows"]:
+        (x0, y0, x1, y1) = window
         pygame.draw.line(realworld, (0, 0, 255), (x0 - px, y0 - py), (x1 - px, y1 - py))
 
 
