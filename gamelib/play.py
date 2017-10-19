@@ -2,6 +2,7 @@ import pygame
 import numpy
 import math
 import random
+import mapgenerator
 
 Black = (0, 0, 0)
 White = (255, 255, 255)
@@ -37,249 +38,11 @@ def init():
     resources["vision"] = pygame.surface.Surface(Size)
     pygame.transform.scale(screen, Size, resources["vision"])
 
-MinimumBuildings = 10
-MaximumBuildings = 20
-MinimumRooms = 2
-MaximumRooms = 4
-LotSize = (LotWidth, LotHeight) = (60, 60)
-def generate_map(game_data):
-    area = {}
-
-    # Generate the lot "vacancies" and shuffle them for assignment of the areas
-    vacant_lots = []
-    for lotx in [-2, -1, 0, 1, 2]:
-        for loty in [-2, -1, 0, 1, 2]:
-            vacant_lots.append((lotx, loty))
-    random.shuffle(vacant_lots)
-
-    # Pick lots at random and generate buildings on them
-    n_buildings = random.randint(MinimumBuildings, MaximumBuildings)
-    buildings = {
-        "walls": [],
-        "doors": [],
-        "windows": [],
-        "floors": []
-    }
-    for b in range(n_buildings):
-        # Get the lot's X, Y index
-        (lotx, loty) = vacant_lots.pop()
-        # TODO store polygons
-
-        # Scale the lot's coordinates
-        lot = pygame.rect.Rect(0, 0, LotWidth, LotHeight)
-        lot.center = (lotx * LotWidth, loty * LotHeight)
-
-        # Set the corridor size to cover ~50/70% of the lot
-        cwidth = int(random.randint(55, 85) * 0.01 * LotWidth)
-        cheight = int(random.randint(55, 85) * 0.01 * LotHeight)
-        ccenterx = lot.centerx + int(random.randint(-10, 10) * 0.01 * LotWidth)
-        ccentery = lot.centery + int(random.randint(-10, 10) * 0.01 * LotHeight)
-        building = generate_building(ccenterx, ccentery, cwidth, cheight)
-
-        buildings["walls"].extend(building["walls"])
-        buildings["doors"].extend(building["doors"])
-        buildings["windows"].extend(building["windows"])
-        buildings["floors"].extend(building["floors"])
-
-    area["buildings"] = buildings
-
-    # Generate open area on the remaining lots
-    while len(vacant_lots) > 0:
-        lot = vacant_lots.pop()
-
-    game_data["map"] = area
-
-SplitLimit = int(0.4 * LotWidth) # Stop splitting rooms at this size
-
-def generate_building(centerx, centery, width, height):
-    building = pygame.rect.Rect((centerx, centery), (width, height))
-    rooms = [building]
-    splitting = True
-    while splitting:
-        splitting = False
-        next_rooms = []
-        for room in rooms:
-            if room.width < SplitLimit \
-            or room.height < SplitLimit:
-                next_rooms.append(room)
-                continue
-
-            splitting = True
-            percentage = random.randint(35, 65)
-            horizontal = random.random() < (float(room.width) /  float(room.width + room.height))
-            if horizontal:
-                room_a = pygame.rect.Rect(
-                    room.topleft,
-                    (int(room.width * percentage * 0.01), room.height))
-                room_b = pygame.rect.Rect(
-                    room_a.topright,
-                    (room.width - room_a.width, room.height))
-            else:
-                room_a = pygame.rect.Rect(
-                    room.topleft,
-                    (room.width, int(room.height * percentage * 0.01)))
-                room_b = pygame.rect.Rect(
-                    room_a.bottomleft,
-                    (room.width, room.height - room_a.height))
-
-            next_rooms.extend([room_a, room_b])
-        rooms = next_rooms
-
-    floors = generate_floors(building, rooms)
-    doors = generate_doors(building, rooms)
-    windows = generate_windows(building, rooms, doors)
-    walls = generate_walls(building, rooms, doors, windows)
-    return { "walls": walls, "doors": doors, "windows": windows, "floors": floors }
-
-def generate_floors(building, rooms):
-    return []
-
-ExtraExitChance = 35 # Chance of a room having an extra non-essential exit
-DoorLength = int(0.3 * SplitLimit)
-def generate_doors(building, rooms):
-    connected = [building]
-    isolated = [r for r in rooms]
-    random.shuffle(isolated)
-
-    doors = []
-    while len(isolated) > 0:
-        for i in isolated:
-            random.shuffle(connected)
-            for c in connected:
-                exits = []
-                if c == building:
-                    if i.left == c.left: exits.append("l")
-                    if i.top == c.top: exits.append("t")
-                    if i.right == c.right: exits.append("r")
-                    if i.bottom == c.bottom: exits.append("b")
-                else:
-                    if i.left == c.right: exits.append("l")
-                    if i.top == c.bottom: exits.append("t")
-                    if i.right == c.left: exits.append("r")
-                    if i.bottom == c.top: exits.append("b")
-
-                if len(exits) == 0:
-                    continue
-
-                random.shuffle(exits)
-                for exit in exits:
-                    if exit in "lr":
-                        miny = max(i.top, c.top)
-                        maxy = min(i.bottom, c.bottom)
-                        if (maxy - miny) < DoorLength:
-                            continue
-
-                        if exit == "l":
-                            x = i.left
-                        else:
-                            x = i.right
-                        w = 0
-                        y = random.randint(miny, maxy - DoorLength)
-                        h = DoorLength
-
-                    else:
-                        minx = max(i.left, c.left)
-                        maxx = min(i.right, c.right)
-                        if (maxx - minx) < DoorLength:
-                            continue
-
-                        if exit == "t":
-                            y = i.top
-                        else:
-                            y = i.bottom
-                        h = 0
-                        x = random.randint(minx, maxx - DoorLength)
-                        w = DoorLength
-
-                    doors.append([x, y, x + w, y + h])
-                    if len(connected) == 1 and connected[0] == building:
-                        connected = [i]
-                    else:
-                        connected.append(i)
-                    break
-        # Strip isolated rooms from the isolated list
-        isolated = [r for r in isolated if r not in connected]
-    return doors
-
-WindowChance = 50
-HalfWindowLength = int(math.ceil(DoorLength * 0.5))
-def generate_windows(building, rooms, doors):
-    windows = []
-    external_rooms = []
-    for room in rooms:
-        if room.left == building.left \
-        or room.right == building.right \
-        or room.top == building.top \
-        or room.bottom == building.bottom:
-            external_rooms.append(room)
-
-    external_doors = []
-    for door in doors:
-        if door[0] == door[2] == building.left \
-        or door[0] == door[2] == building.right \
-        or door[1] == door[3] == building.top \
-        or door[1] == door[3] == building.bottom:
-            external_doors.append(door)
-
-    for room in external_rooms:
-        if room.left == building.left:
-            canplace = True
-            for door in external_doors:
-                if door [0] == door[2] == building.left:
-                    canplace = False
-                    break
-            if canplace and random.randint(0, 100) < WindowChance:
-                x = room.left
-                y0 = room.centery - HalfWindowLength
-                y1 = room.centery + HalfWindowLength
-                windows.append([x, y0, x, y1])
-
-        if room.right == building.right:
-            canplace = True
-            for door in external_doors:
-                if door [0] == door[2] == building.right:
-                    canplace = False
-                    break
-            if canplace and random.randint(0, 100) < WindowChance:
-                x = room.right
-                y0 = room.centery - HalfWindowLength
-                y1 = room.centery + HalfWindowLength
-                windows.append([x, y0, x, y1])
-
-        if room.top == building.top:
-            canplace = True
-            for door in external_doors:
-                if door [1] == door[3] == building.top:
-                    canplace = False
-                    break
-            if canplace and random.randint(0, 100) < WindowChance:
-                y = room.top
-                x0 = room.centerx - HalfWindowLength
-                x1 = room.centerx + HalfWindowLength
-                windows.append([x0, y, x1, y])
-
-        if room.bottom == building.bottom:
-            canplace = True
-            for door in external_doors:
-                if door [1] == door[3] == building.bottom:
-                    canplace = False
-                    break
-            if canplace and random.randint(0, 100) < WindowChance:
-                y = room.bottom
-                x0 = room.centerx - HalfWindowLength
-                x1 = room.centerx + HalfWindowLength
-                windows.append([x0, y, x1, y])
-
-    return windows
-
-def generate_walls(building, rooms, doors, windows):
-    return rooms
-
 def handle_key(game, data, event):
     if (event.key == pygame.K_ESCAPE):
         game.data["gamestate"] = "newtitle"
     if (event.key == pygame.K_m):
-        generate_map(data)
+        mapgenerator.generate_map(data)
 
 def simulate(game, data, dt):
     data["miliseconds"] += dt
@@ -336,6 +99,7 @@ def render(data):
 
 def handle_swap(game):
     init()
+    reload(mapgenerator)
 
 def get_mouse_angle():
     screen = pygame.display.get_surface()
