@@ -9,6 +9,8 @@ White = (255, 255, 255)
 Size = (Width, Height) = (200, 200)
 Pass = 0.40
 HalfConeAngle = 0.15 * math.pi
+Shadow = (255, 0, 0)
+ShadowLength = 300
 
 # Thing colors
 ColorDoor = (140, 110, 0)
@@ -60,50 +62,76 @@ def render(data):
     # Renders the real world
     realworld = resources["realworld"]
     realworld.fill(Black)
-    ppos = (px, py) = (data["position"]["x"], data["position"]["y"])
-
     area_map = data["map"]
+
+    player_position = (px, py) = (data["position"]["x"], data["position"]["y"])
+    camera = (cx, cy) = (px - Width * 0.5, py - Height * 0.5)
+    mouse_angle = get_mouse_angle()
+
+    # Renders the light surface
+    light = resources["light"]
+    light.fill(White)
+    drawpoly(light, Black, camera, [
+        player_position,
+        (
+            px + math.cos(mouse_angle + HalfConeAngle) * ShadowLength,
+            py + math.sin(mouse_angle + HalfConeAngle) * ShadowLength,
+        ),
+        (
+            px + math.cos(mouse_angle - HalfConeAngle) * ShadowLength,
+            py + math.sin(mouse_angle - HalfConeAngle) * ShadowLength,
+        ),
+    ])
+
 
     for room in area_map["buildings"]["floors"]:
         (x, y, w, h, r, g, b) = room
-        pygame.draw.rect(realworld, (r, g, b), ((x - px, y - py), (w, h)))
+        pygame.draw.rect(realworld, (r, g, b), ((x - cx, y - cy), (w, h)))
 
     for wall in area_map["buildings"]["walls"]:
         (x0, y0, x1, y1) = wall
-        pygame.draw.line(realworld, White, (x0 - px, y0 - py), (x1 - px, y1 - py))
+        drawline(realworld, White, camera, (x0, y0), (x1, y1), 3)
+        cast_shadow(light, camera, player_position, wall, Shadow)
 
     for door in area_map["buildings"]["doors"]:
         (x0, y0, x1, y1) = door
-        pygame.draw.line(realworld, ColorDoor, (x0 - px, y0 - py), (x1 - px, y1 - py))
+        #pygame.draw.line(realworld, ColorDoor, (x0 - px, y0 - py), (x1 - px, y1 - py), 3)
+        #cast_shadow(light, center, wall, Shadow)
 
     for window in area_map["buildings"]["windows"]:
         (x0, y0, x1, y1) = window
-        pygame.draw.line(realworld, (0, 0, 255), (x0 - px, y0 - py), (x1 - px, y1 - py))
-
-
-    # Renders the light surface
-    center = (middlex, middley) = (Width * 0.5, Height * 0.5)
-    angle = get_mouse_angle()
-    light = resources["light"]
-    light.fill(White)
-    pygame.draw.polygon(light, Black, [
-        center,
-        (
-            middlex * math.cos(angle + HalfConeAngle) * 100,
-            middley * math.sin(angle + HalfConeAngle) * 100
-        ),
-        (
-            middlex * math.cos(angle - HalfConeAngle) * 100,
-            middley * math.sin(angle - HalfConeAngle) * 100
-        )
-    ])
+        #pygame.draw.line(realworld, (0, 0, 255), (x0 - px, y0 - py), (x1 - px, y1 - py), 3)
 
     # Apply the light to the surface
-    # realworld.blit(light, (0, 0))
+    light.set_alpha(128)
+    realworld.blit(light, (0, 0))
 
     screen = pygame.display.get_surface()
     pygame.transform.scale(realworld, screen.get_size(), screen)
     pygame.display.flip()
+
+def drawline(surface, color, (cx, cy), (x0, y0), (x1, y1), width):
+    pygame.draw.line(surface, color, (x0 - cx, y0 - cy), (x1 - cx, y1 - cy), width)
+
+def drawpoly(surface, color, (cx, cy), points):
+    transposed = [(x - cx, y - cy) for (x, y) in points]
+    pygame.draw.polygon(surface, color, transposed)
+
+def cast_shadow(surface, camera, (lx, ly), (x1, y1, x2, y2), color):
+    dy = y1 - ly
+    dx = x1 - lx
+    angle1 = math.atan2(dy, dx)
+
+    dy = y2 - ly
+    dx = x2 - lx
+    angle2 = math.atan2(dy, dx)
+
+    drawpoly(surface, color, camera, [
+        (x1, y1),
+        (x1 + math.cos(angle1) * ShadowLength, y1 + math.sin(angle1) * ShadowLength),
+        (x2 + math.cos(angle2) * ShadowLength, y2 + math.sin(angle2) * ShadowLength),
+        (x2, y2)
+    ])
 
 def handle_swap(game):
     init()

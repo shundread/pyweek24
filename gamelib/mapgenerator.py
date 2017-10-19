@@ -2,12 +2,13 @@ import pygame
 import math
 import random
 
-MinimumBuildings = 4
-MaximumBuildings = 7
+MinimumBuildings = 10
+MaximumBuildings = 15
 MinimumRooms = 2
 MaximumRooms = 4
-LotSize = (LotWidth, LotHeight) = (40, 40)
-SplitLimit = int(math.ceil(0.4 * LotWidth))
+BuildingSize = 40
+LotSize = int(BuildingSize * 1.4)
+SplitLimit = int(math.ceil(0.4 * LotSize))
 HalfDoorLength = int(math.ceil(0.5 * SplitLimit * 0.3))
 DoorLength = HalfDoorLength * 2
 HalfWindowLength = HalfDoorLength
@@ -19,8 +20,8 @@ def generate_map(game_data):
 
     # Generate the lot "vacancies" and shuffle them for assignment of the areas
     vacant_lots = []
-    for lotx in [-1, 0, 1]:
-        for loty in [-1, 0, 1]:
+    for lotx in [-2, -1, 0, 1, 2]:
+        for loty in [-2, -1, 0, 1, 2]:
             vacant_lots.append((lotx, loty))
     random.shuffle(vacant_lots)
 
@@ -38,14 +39,14 @@ def generate_map(game_data):
         # TODO store polygons
 
         # Scale the lot's coordinates
-        lot = pygame.rect.Rect(0, 0, LotWidth, LotHeight)
-        lot.center = (lotx * LotWidth, loty * LotHeight)
+        lot = pygame.rect.Rect(0, 0, LotSize, LotSize)
+        lot.center = (lotx * LotSize, loty * LotSize)
 
-        # Set the corridor size to cover ~50/70% of the lot
-        cwidth = int(random.randint(55, 85) * 0.01 * LotWidth)
-        cheight = int(random.randint(55, 85) * 0.01 * LotHeight)
-        ccenterx = lot.centerx + int(random.randint(-10, 10) * 0.01 * LotWidth)
-        ccentery = lot.centery + int(random.randint(-10, 10) * 0.01 * LotHeight)
+        # Sets the building dimensions
+        cwidth = int(random.randint(70, 100) * 0.01 * BuildingSize)
+        cheight = int(random.randint(70, 100) * 0.01 * BuildingSize)
+        ccenterx = lot.centerx + int(random.randint(-10, 10) * 0.01 * LotSize)
+        ccentery = lot.centery + int(random.randint(-10, 10) * 0.01 * LotSize)
         building = generate_building(ccenterx, ccentery, cwidth, cheight)
 
         buildings["walls"].extend(building["walls"])
