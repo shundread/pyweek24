@@ -10,7 +10,7 @@ Size = (Width, Height) = (200, 200)
 Pass = 0.40
 HalfConeAngle = 0.20 * math.pi
 Shadow = White
-ShadowAlpha = 128
+ShadowAlpha = 255
 ShadowLength = Width * 2
 
 # Colors
@@ -95,7 +95,8 @@ def simulate(game, game_data, dt):
     player_position = (px, py) = get_position(player)
 
     # Simulate characters
-    for character in game_data["characters"]:
+    characters = game_data["characters"]
+    for character in characters:
         position = (x, y) = character["position"]
         distance = point_point_distance(player_position, position)
         if character["state"] == "hiding":
@@ -111,15 +112,38 @@ def simulate(game, game_data, dt):
                 dy = math.copysign(min(abs(dy), dt * SpeedPerson), dy)
                 set_next_position(character, (x + dx, y + dy))
 
+    # Collide characters with each other
+    all_characters = characters + [player]
+    for (i, c0) in enumerate(characters):
+        for c1 in all_characters:
+            if c0 == c1:
+                continue
+            (x0, y0) = p0 = get_next_position(c0)
+            (x1, y1) = p1 = get_next_position(c1)
+
+            distance = point_point_distance(p0, p1)
+            if distance < BoxPerson:
+                (dx, dy) = (x1 - x0, y1 - y0)
+                angle = math.atan2(dy, dx)
+                depth = BoxPerson - distance
+                pushback = 0.5 * depth
+
+                nx0 = x0 - math.cos(angle) * pushback
+                ny0 = y0 - math.sin(angle) * pushback
+                nx1 = x1 + math.cos(angle) * pushback
+                ny1 = y1 + math.sin(angle) * pushback
+                set_next_position(c0, (nx0, ny0))
+                set_next_position(c1, (nx1, ny1))
+
+    # The player never gets pushed around, only killed :)
     (dx, dy) = (0, 0)
-    # TODO make speed adjustable to dt, and scale player position in the getter
     if keys[pygame.K_w]: dy -= SpeedPerson * dt
     if keys[pygame.K_s]: dy += SpeedPerson * dt
     if keys[pygame.K_a]: dx -= SpeedPerson * dt
     if keys[pygame.K_d]: dx += SpeedPerson * dt
-
     set_next_position(player, (px + dx, py + dy))
 
+    # Collide characters with walls
     area_map = game_data["map"]
     buildings = area_map["structures"]
 
@@ -148,6 +172,7 @@ def simulate(game, game_data, dt):
 
                     dx = crect.centerx - x
 
+            # Collide vertical
             if dy:
                 crect.center = (x, y + dy)
                 collision = rects_collision(crect, lrect)
@@ -159,6 +184,7 @@ def simulate(game, game_data, dt):
                     dy = crect.centery - y
 
         set_position(character, (x + dx, y + dy))
+        set_next_position(character, (x + dx, y + dy))
 
 def point_point_distance((x0, y0), (x1, y1)):
     return ((x1 - x0) ** 2 + (y1 - y0) ** 2) ** 0.5
