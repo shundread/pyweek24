@@ -24,19 +24,22 @@ ColorShirt = (30, 200, 40)
 SizeHead = 4
 SizeShoulder = 4
 
+PositionScale = 20
+
 # Collision box sizes
-BoxPerson = 12
-DistanceRescue = 30
-DistanceFollow = 28
+BoxPerson = 12 * PositionScale
+DistanceRescue = 30 * PositionScale
+DistanceFollow = 28 * PositionScale
 
 # Speeds
-SpeedPerson = 1
+SpeedPerson = 2
 
 def reset_data():
     return {
         "miliseconds": 0,
         "player": {
             "position": (0, 0),
+            "next_position": (0, 0),
         },
         "characters": []
     }
@@ -62,9 +65,10 @@ def generate_map(game_data):
 
     # Place the family members
     game_data["characters"] = []
-    for (n, position) in enumerate(game_data["map"]["family_spawns"]):
+    for (n, (x, y)) in enumerate(game_data["map"]["family_spawns"]):
         game_data["characters"].append({
-            "position": position,
+            "position": (x * PositionScale, y * PositionScale),
+            "next_position": (x * PositionScale, y * PositionScale),
             "angle": n,
             "state": "hiding",
         })
@@ -87,7 +91,8 @@ def simulate(game, game_data, dt):
     game_data["miliseconds"] += dt
     keys = pygame.key.get_pressed()
 
-    player_position = (px, py) = get_player_position(game_data)
+    player = game_data["player"]
+    player_position = (px, py) = get_position(player)
 
     # Simulate characters
     for character in game_data["characters"]:
@@ -99,36 +104,61 @@ def simulate(game, game_data, dt):
 
         if character["state"] == "following":
             (dx, dy) = (px - x, py - y)
-            character["angle"] = math.atan2(dy, dx)
+            angle = math.atan2(dy, dx)
+            character["angle"] = angle
             if distance > DistanceFollow:
-                dx = math.copysign(min(abs(dx), SpeedPerson), dx)
-                dy = math.copysign(min(abs(dy), SpeedPerson), dy)
-                character["position"] = (int(x + dx), int(y + dy))
+                dx = math.copysign(min(abs(dx), dt * SpeedPerson), dx)
+                dy = math.copysign(min(abs(dy), dt * SpeedPerson), dy)
+                set_next_position(character, (x + dx, y + dy))
 
     (dx, dy) = (0, 0)
     # TODO make speed adjustable to dt, and scale player position in the getter
-    if keys[pygame.K_w]: dy -= SpeedPerson
-    if keys[pygame.K_s]: dy += SpeedPerson
-    if keys[pygame.K_a]: dx -= SpeedPerson
-    if keys[pygame.K_d]: dx += SpeedPerson
+    if keys[pygame.K_w]: dy -= SpeedPerson * dt
+    if keys[pygame.K_s]: dy += SpeedPerson * dt
+    if keys[pygame.K_a]: dx -= SpeedPerson * dt
+    if keys[pygame.K_d]: dx += SpeedPerson * dt
+
+    set_next_position(player, (px + dx, py + dy))
 
     area_map = game_data["map"]
     buildings = area_map["structures"]
+
     line_barriers = buildings["doors"] + buildings["walls"]
-    prect = pygame.rect.Rect(0, 0, BoxPerson, BoxPerson)
-    for (x0, y0, x1, y1) in line_barriers:
-        lrect = line_to_rect(x0, y0, x1, y1)
+    barrier_rects = []
+    for unscaled_line in line_barriers:
+        scaled_line = [v * PositionScale for v in unscaled_line]
+        barrier_rects.append(line_to_rect(*scaled_line))
 
-        # Collide horizontal
-        prect.center = (px + dx, py)
-        collision = rects_collision(prect, lrect)
-        dx = math.copysign(abs(dx) - collision[0], dx)
+    for character in game_data["characters"] + [player]:
+        (x, y) = get_position(character)
+        (x1, y1) = get_next_position(character)
+        (dx, dy) = (x1 - x, y1 - y)
+        crect = pygame.rect.Rect(0, 0, BoxPerson, BoxPerson)
 
-        # Collide vertical
-        prect.center = (px, py + dy)
-        collision = rects_collision(prect, lrect)
-        dy = math.copysign(abs(dy) - collision[1], dy)
-    set_player_position(game_data, (int(px + dx), int(py + dy)))
+        for lrect in barrier_rects:
+            # Collide horizontal
+            if dx:
+                crect.center = (x + dx, y)
+                collision = rects_collision(crect, lrect)
+                if collision[0]:
+                    if dx > 0:
+                        crect.right = lrect.left
+                    else:
+                        crect.left = lrect.right
+
+                    dx = crect.centerx - x
+
+            if dy:
+                crect.center = (x, y + dy)
+                collision = rects_collision(crect, lrect)
+                if collision[1]:
+                    if dy > 0:
+                        crect.bottom = lrect.top
+                    else:
+                        crect.top = lrect.bottom
+                    dy = crect.centery - y
+
+        set_position(character, (x + dx, y + dy))
 
 def point_point_distance((x0, y0), (x1, y1)):
     return ((x1 - x0) ** 2 + (y1 - y0) ** 2) ** 0.5
@@ -151,7 +181,7 @@ def render(game_data):
 
     mouse_offset = (mdx, mdy) = get_mouse_offset()
     mouse_angle = get_mouse_angle(mdx, mdy)
-    player_position = (px, py) = get_player_position(game_data)
+    player_position = (px, py) = get_render_position(game_data["player"])
     camera = (cx, cy) = (
         px + int(0.3 * mdx - 0.5 * Width),
         py + int(0.3 * mdy - 0.5 * Height)
@@ -182,7 +212,7 @@ def render(game_data):
 
     # Draw the other characters
     for character in game_data["characters"]:
-        position = character["position"]
+        position = get_render_position(character)
         angle = character["angle"]
         drawcharacter(realworld, ColorHead, ColorShirt, camera, position, angle)
 
@@ -272,8 +302,21 @@ def get_mouse_offset():
 def get_mouse_angle(dx, dy):
     return math.atan2(dy, dx)
 
-def get_player_position(game_data):
-    return game_data["player"]["position"]
+def get_render_position(entity):
+    (x, y) = entity["position"]
+    return (
+        int(round(float(x) / PositionScale)),
+        int(round(float(y) / PositionScale))
+    )
 
-def set_player_position(game_data, (x, y)):
-    game_data["player"]["position"] = (x, y)
+def get_position(entity):
+    return entity["position"]
+
+def set_position(entity, (x, y)):
+    entity["position"] = (x, y)
+
+def get_next_position(entity):
+    return entity["next_position"]
+
+def set_next_position(entity, (x, y)):
+    entity["next_position"] = (x, y)
