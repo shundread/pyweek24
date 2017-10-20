@@ -6,7 +6,7 @@ import mapgenerator
 
 Black = (0, 0, 0)
 White = (255, 255, 255)
-Size = (Width, Height) = (600, 600)
+Size = (Width, Height) = (200, 200)
 Pass = 0.40
 HalfConeAngle = 0.20 * math.pi
 Shadow = White
@@ -26,6 +26,11 @@ SizeShoulder = 4
 
 # Collision box sizes
 BoxPerson = 12
+DistanceRescue = 30
+DistanceFollow = 28
+
+# Speeds
+SpeedPerson = 1
 
 def reset_data():
     return {
@@ -60,7 +65,8 @@ def generate_map(game_data):
     for (n, position) in enumerate(game_data["map"]["family_spawns"]):
         game_data["characters"].append({
             "position": position,
-            "angle": n
+            "angle": n,
+            "state": "hiding",
         })
 
     # Place the monsters
@@ -82,12 +88,29 @@ def simulate(game, game_data, dt):
     keys = pygame.key.get_pressed()
 
     player_position = (px, py) = get_player_position(game_data)
+
+    # Simulate characters
+    for character in game_data["characters"]:
+        position = (x, y) = character["position"]
+        distance = point_point_distance(player_position, position)
+        if character["state"] == "hiding":
+            if distance < DistanceRescue:
+                character["state"] = "following"
+
+        if character["state"] == "following":
+            (dx, dy) = (px - x, py - y)
+            character["angle"] = math.atan2(dy, dx)
+            if distance > DistanceFollow:
+                dx = math.copysign(min(abs(dx), SpeedPerson), dx)
+                dy = math.copysign(min(abs(dy), SpeedPerson), dy)
+                character["position"] = (int(x + dx), int(y + dy))
+
     (dx, dy) = (0, 0)
     # TODO make speed adjustable to dt, and scale player position in the getter
-    if keys[pygame.K_w]: dy -= 1
-    if keys[pygame.K_s]: dy += 1
-    if keys[pygame.K_a]: dx -= 1
-    if keys[pygame.K_d]: dx += 1
+    if keys[pygame.K_w]: dy -= SpeedPerson
+    if keys[pygame.K_s]: dy += SpeedPerson
+    if keys[pygame.K_a]: dx -= SpeedPerson
+    if keys[pygame.K_d]: dx += SpeedPerson
 
     area_map = game_data["map"]
     buildings = area_map["structures"]
@@ -106,6 +129,9 @@ def simulate(game, game_data, dt):
         collision = rects_collision(prect, lrect)
         dy = math.copysign(abs(dy) - collision[1], dy)
     set_player_position(game_data, (int(px + dx), int(py + dy)))
+
+def point_point_distance((x0, y0), (x1, y1)):
+    return ((x1 - x0) ** 2 + (y1 - y0) ** 2) ** 0.5
 
 def line_to_rect(x0, y0, x1, y1):
     x = min(x0, x1)
