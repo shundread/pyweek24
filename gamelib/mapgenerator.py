@@ -15,8 +15,14 @@ HalfWindowLength = HalfDoorLength
 WindowLength = HalfWindowLength * 2
 WindowChance = 0.3
 
+SpawnsFamily = 3
+SpawnsMonsters = 4
+
 def generate_map(game_data):
-    area = {}
+    area = {
+        "family_spawns": [],
+        "monster_spawns": []
+    }
 
     # Generate the lot "vacancies" and shuffle them for assignment of the areas
     vacant_lots = []
@@ -31,36 +37,45 @@ def generate_map(game_data):
         "walls": [],
         "doors": [],
         "windows": [],
-        "floors": []
+        "floors": [],
     }
     for b in range(n_buildings):
-        # Get the lot's X, Y index
+        # Get the lot's area
         (lotx, loty) = vacant_lots.pop()
-        # TODO store polygons
-
-        # Scale the lot's coordinates
-        lot = pygame.rect.Rect(0, 0, LotSize, LotSize)
-        lot.center = (lotx * LotSize, loty * LotSize)
+        lot = lot_rect(lotx, loty)
 
         # Sets the building dimensions
-        cwidth = int(random.randint(70, 100) * 0.01 * BuildingSize)
-        cheight = int(random.randint(70, 100) * 0.01 * BuildingSize)
-        ccenterx = lot.centerx + int(random.randint(-10, 10) * 0.01 * LotSize)
-        ccentery = lot.centery + int(random.randint(-10, 10) * 0.01 * LotSize)
-        building = generate_building(ccenterx, ccentery, cwidth, cheight)
+        bwidth = int(random.randint(70, 100) * 0.01 * BuildingSize)
+        bheight = int(random.randint(70, 100) * 0.01 * BuildingSize)
+        bcenterx = lot.centerx + int(random.randint(-10, 10) * 0.01 * LotSize)
+        bcentery = lot.centery + int(random.randint(-10, 10) * 0.01 * LotSize)
+        building = generate_building(bcenterx, bcentery, bwidth, bheight)
 
         buildings["walls"].extend(building["walls"])
         buildings["doors"].extend(building["doors"])
         buildings["windows"].extend(building["windows"])
         buildings["floors"].extend(building["floors"])
+        if len(area["family_spawns"]) < SpawnsFamily:
+            (x, y, w, h, r, g, b) = random.choice(building["floors"])
+            position = (x + int(w * 0.5), y + int(h * 0.5))
+            area["family_spawns"].append(position)
 
-    area["buildings"] = buildings
+    area["structures"] = buildings
 
-    # Generate open area on the remaining lots
+    # Generate open areas on the remaining lots
     while len(vacant_lots) > 0:
-        lot = vacant_lots.pop()
+        # Get the lot's area
+        (lotx, loty) = vacant_lots.pop()
+        lot = lot_rect(lotx, loty)
+
+        # TODO spawn trees, bushes & rocks
 
     game_data["map"] = area
+
+def lot_rect(x, y):
+    lot = pygame.rect.Rect(0, 0, LotSize, LotSize)
+    lot.center = (x * LotSize, y * LotSize)
+    return lot
 
 def generate_building(centerx, centery, width, height):
     building = pygame.rect.Rect((centerx, centery), (width, height))
