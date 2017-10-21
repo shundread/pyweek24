@@ -44,7 +44,7 @@ def init():
         "move around with 'WASD'",
         "open with 'E' or",
         "break open with 'R'",
-        "don't be too loud!",
+        "adjust view with mouse",
         "",
         "press 'S' to start"
     ]

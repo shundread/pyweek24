@@ -27,12 +27,18 @@ Othewise open a terminal / console and "cd" to the game directory and run:
 
 HOW TO PLAY THE GAME:
 
-Move the cursor around the screen with the mouse.
+Move the character with WASD
 
-Press the left mouse button to fire the ducks.
+Adjust the vision with the mouse
 
+Press E to open stuff, and R to force them open
 
+Rescue one or two of your family members and leave the area
 
 LICENSE:
 
 See the LICENSE file
+
+AUDIO LICENSE:
+
+See audios.txt
