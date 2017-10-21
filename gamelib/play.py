@@ -2,6 +2,8 @@ import pygame
 import numpy
 import math
 import random
+
+import data
 import mapgenerator
 
 # Colors
@@ -63,7 +65,7 @@ DistanceFollow = 28 * ScalePosition
 DistanceInteract = 20 * ScalePosition
 
 # Speeds
-SpeedPerson = 4
+SpeedPerson = 2
 SpeedMonster = 2 * SpeedPerson
 
 # Timers
@@ -72,16 +74,21 @@ TimerChase = 4000
 TimerWander = 18000
 TimerDeath = 2000
 
+# Sound info
+StepSoundThreshold = 300
+
 def reset_data():
     return {
         "miliseconds": 0,
         "player": {
-            "type": "player",
+            "type": "human",
             "position": (0, 0),
             "next_position": (0, 0),
             "state": "alive",
+            "stepsound": 0,
         },
-        "characters": []
+        "characters": [],
+        "sounds": [],
     }
 
 resources = {}
@@ -105,6 +112,31 @@ def init():
     resources["vision"] = pygame.surface.Surface(Size)
     pygame.transform.scale(screen, Size, resources["vision"])
 
+    ###############
+    # Load audios #
+    ###############
+    resources["human_steps"] = [
+        pygame.mixer.Sound(data.filepath("human_step_0.wav")),
+        pygame.mixer.Sound(data.filepath("human_step_1.wav")),
+    ]
+    resources["monster_steps"] = [
+        pygame.mixer.Sound(data.filepath("monster_step_0.wav")),
+        pygame.mixer.Sound(data.filepath("monster_step_1.wav")),
+    ]
+    resources["break_door"] = pygame.mixer.Sound(data.filepath("break_door.wav"))
+    resources["break_window"] = pygame.mixer.Sound(data.filepath("break_window.wav"))
+    resources["open_door"] = pygame.mixer.Sound(data.filepath("open_door.wav"))
+    resources["open_window"] = pygame.mixer.Sound(data.filepath("open_window.wav"))
+    resources["open_not"] = pygame.mixer.Sound(data.filepath("open_not.wav"))
+    resources["kill"] = pygame.mixer.Sound(data.filepath("kill.wav"))
+    resources["growl"] = pygame.mixer.Sound(data.filepath("growl.wav"))
+    resources["chase"] = pygame.mixer.Sound(data.filepath("chase.wav"))
+
+    # Initiate tense music
+    resources["music"] = pygame.mixer.music.load(data.filepath("ambience1_normal.mp3"))
+    pygame.mixer.music.play(-1)
+
+
 def generate_map(game_data):
     mapgenerator.generate_map(game_data)
 
@@ -121,6 +153,7 @@ def generate_map(game_data):
             "next_position": (x * ScalePosition, y * ScalePosition),
             "angle": n,
             "state": "hiding",
+            "stepsound": 0,
         })
 
     # Place the monsters
@@ -133,6 +166,7 @@ def generate_map(game_data):
             "angle": n,
             "state": "resting",
             "timer": 0,
+            "stepsound": 0,
         })
 
 
@@ -171,15 +205,21 @@ def interact(game_data):
     structures = game_data["map"]["structures"]
     doors = structures["doors"]
     windows = structures["windows"]
-    if not open_passage(game_data, doors, force=False):
-        open_passage(game_data, windows, force=False)
+    if open_passage(game_data, doors, force=False):
+        resources["open_door"].play()
+    elif open_passage(game_data, windows, force=False):
+        resources["open_window"].play()
+    else:
+        resources["open_not"].play()
 
 def force_open(game_data):
     structures = game_data["map"]["structures"]
     doors = structures["doors"]
     windows = structures["windows"]
-    if not open_passage(game_data, doors, force=True):
-        open_passage(game_data, windows, force=True)
+    if open_passage(game_data, doors, force=True):
+        resources["break_door"].play()
+    elif open_passage(game_data, windows, force=True):
+        resources["break_window"].play()
 
 def open_passage(game_data, passages, force):
     player_position = get_position(game_data["player"])
@@ -195,7 +235,7 @@ def open_passage(game_data, passages, force):
 
             if locked:
                 print "cannot open thing"
-                return True
+                return False
             else:
                 print "opening the thing"
                 passages.pop(i)
@@ -348,6 +388,14 @@ def simulate(game, game_data, dt):
 
         set_position(character, (x + dx, y + dy))
         set_next_position(character, (x + dx, y + dy))
+
+        # Make stepping sounds
+        if dx or dy:
+            character["stepsound"] += dt
+        else:
+            character["stepsound"] = max(0, character["stepsound"] - dt * 0.3)
+        if character["stepsound"] > StepSoundThreshold:
+            emit_step_sound(game_data, character)
 
 def check_game_over(game, game_data):
     player = game_data["player"]
@@ -615,3 +663,7 @@ def kill_character(character):
         return
     character["state"] = "dying"
     character["deathtimer"] = TimerDeath
+
+def emit_step_sound(game_data, character):
+    character["stepsound"] = 0
+    resources[character["type"] + "_steps"][random.randint(0, 1)].play()

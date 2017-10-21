@@ -1,0 +1,40 @@
+The following audio files were modified from audio files produced by others:
+
+################################################################################
+
+* break_door.wav
+
+"Crate Breaking 3.wav" by kevinkace of Freesound.org
+
+http://freesound.org/people/kevinkace/sounds/66779/
+
+################################################################################
+
+* break_window.wav
+
+"Glass Smash, Bottle, F.wav" by InspectorJ of Freesound.org
+
+http://freesound.org/people/InspectorJ/sounds/344271/
+
+################################################################################
+
+* monster_step_0.wav
+* monster_step_1.wav
+
+"Footsteps, Ice, A.wav" by InspectorJ of Freesound.org
+
+http://freesound.org/people/InspectorJ/sounds/338265/
+
+################################################################################
+
+* human_step_0.wav
+* human_step_1.wav
+
+"Footsteps, Snow, A.wav" by InspectorJ of Freesound.org
+
+http://freesound.org/people/InspectorJ/sounds/397946/
+
+################################################################################
+
+All other audio files were recorded and produced by the author of this game and
+are in the public domain
