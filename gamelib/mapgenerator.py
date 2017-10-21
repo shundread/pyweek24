@@ -2,23 +2,32 @@ import pygame
 import math
 import random
 
-MinimumBuildings = 10
-MaximumBuildings = 15
-MinimumRooms = 2
-MaximumRooms = 4
+# Building / Lot dimensions
 BuildingSize = 250
 LotRows = 5
 LotColumns = 5
 LotSize = int(BuildingSize * 1.4)
+
+# Building quantities
+MinimumBuildings = 10
+MaximumBuildings = 15
+
+# Limit for splitting the buildings
 SplitLimit = int(math.ceil(0.4 * BuildingSize))
+
+# Passage dimensions
 HalfDoorLength = 20
 DoorLength = HalfDoorLength * 2
 HalfWindowLength = HalfDoorLength
 WindowLength = HalfWindowLength * 2
-WindowChance = 0.3
 
+# Spawn quantities
 SpawnsFamily = 3
 SpawnsMonsters = 4
+
+# Chances of stuff happening
+ChanceWindow = 0.3 # window placement
+ChancePassageLock = 0.3 # chance of a door or window being locked
 
 def generate_map(game_data):
     area = {
@@ -111,7 +120,6 @@ def generate_building(centerx, centery, width, height):
                 wall = shared_wall(d, c)
                 if wall is None:
                     continue
-                walls.add(wall)
 
                 # Works because the wall is aligned along the coordinate axes
                 length = (wall[2] - wall[0]) + (wall[3] - wall[1])
@@ -148,7 +156,7 @@ def generate_building(centerx, centery, width, height):
             n_exits -= 1
 
         for wall in outer_walls:
-            if random.random() < WindowChance:
+            if random.random() < ChanceWindow:
                 segments = add_passage(*wall)
                 windows.append(segments["passage"])
                 walls.add(segments["walls"][0])
@@ -221,8 +229,9 @@ def add_passage(x0, y0, x1, y1):
     door_x1 = x + dx
     door_y0 = y - dy
     door_y1 = y + dy
+    locked = random.random() < ChancePassageLock
     return {
-        "passage": (door_x0, door_y0, door_x1, door_y1),
+        "passage": (door_x0, door_y0, door_x1, door_y1, locked),
         "walls": (
             (x0, y0, door_x0, door_y0),
             (door_x1, door_y1, x1, y1)

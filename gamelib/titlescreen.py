@@ -36,7 +36,7 @@ def init():
     banner = pygame.image.load("data/titleC.png").convert_alpha()
     bannerwidth = banner.get_width()
     bannerx = int((Width - bannerwidth) * 0.5)
-    bannery = int(Height * 0.25)
+    bannery = int(Height * 0.2)
     title.blit(banner, (bannerx, bannery))
 
     # Game instructions
@@ -44,7 +44,8 @@ def init():
     lines = [
         "move around with 'WASD'",
         "aim flashlight with mouse",
-        "interact with 'I'",
+        "interact with 'E'",
+        "break open with 'R'",
         "",
         "press 'I' to start"
     ]
@@ -52,7 +53,7 @@ def init():
         text = font.render(line, False, Black)
         (w, h) = text.get_size()
         x = int((Width - w) * 0.5)
-        y = int(Height * 0.6) + (n * h)
+        y = int(Height * 0.5) + (n * h)
         title.blit(text, (x, y))
 
     resources["title"] = title

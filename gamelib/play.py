@@ -20,15 +20,15 @@ Size = (Width, Height) = (200, 200)
 MinimapSize = (MinimapWidth, MinimapHeight) = (int(Width * 0.15), int(Height * 0.15))
 MinimapMargin = (int(MinimapWidth * 0.5), int (MinimapHeight * 0.5))
 MinimapAlpha = 128
-MinimapForeground = (120, 240, 40)
-MinimapBackground = (40, 80, 120)
-MinimapPersonIndicator = (255, 0, 255)
+MinimapForeground = (160, 240, 80)
+MinimapBackground = (60, 100, 150)
+MinimapPersonIndicator = (20, 0, 20)
 
 # Light parameters
 HalfConeAngle = 0.20 * math.pi
 Shadow = White
 ShadowAlpha = 128
-ShadowLength = Width * 10
+ShadowLength = Width * 20
 
 # Funky update parameters (UNUSED)
 Pass = 0.40
@@ -41,8 +41,11 @@ PositionScale = 20
 
 # Collision box sizes
 BoxPerson = 12 * PositionScale
+
+# Distances
 DistanceRescue = 30 * PositionScale
 DistanceFollow = 28 * PositionScale
+DistanceInteract = 20 * PositionScale
 
 # Speeds
 SpeedPerson = 2
@@ -124,8 +127,46 @@ def draw_minimap(game_data):
 def handle_key(game, game_data, event):
     if (event.key == pygame.K_ESCAPE):
         game.data["gamestate"] = "newtitle"
+    if (event.key == pygame.K_e):
+        interact(game_data)
+    if (event.key == pygame.K_r):
+        force_open(game_data)
     if (event.key == pygame.K_m):
         generate_map(game_data)
+
+def interact(game_data):
+    structures = game_data["map"]["structures"]
+    doors = structures["doors"]
+    windows = structures["windows"]
+    if not open_passage(game_data, doors, force=False):
+        open_passage(game_data, windows, force=False)
+
+def force_open(game_data):
+    structures = game_data["map"]["structures"]
+    doors = structures["doors"]
+    windows = structures["windows"]
+    if not open_passage(game_data, doors, force=True):
+        open_passage(game_data, windows, force=True)
+
+def open_passage(game_data, passages, force):
+    player_position = get_position(game_data["player"])
+    for (i, item) in enumerate(passages):
+        (x0, y0, x1, y1, locked) = item
+        (x, y) = (0.5 * PositionScale * (x0 + x1), 0.5 * PositionScale * (y0 + y1))
+        distance = point_point_distance(player_position, (x, y))
+        if distance < DistanceInteract:
+            if force:
+                print "forcing open the thing"
+                passages.pop(i)
+                return True
+
+            if locked:
+                print "cannot open thing"
+                return True
+            else:
+                print "opening the thing"
+                passages.pop(i)
+                return True
 
 def simulate(game, game_data, dt):
     game_data["miliseconds"] += dt
@@ -187,10 +228,10 @@ def simulate(game, game_data, dt):
     area_map = game_data["map"]
     buildings = area_map["structures"]
 
-    line_barriers = buildings["doors"] + buildings["walls"]
+    line_barriers = buildings["windows"] + buildings["doors"] + buildings["walls"]
     barrier_rects = []
     for unscaled_line in line_barriers:
-        scaled_line = [v * PositionScale for v in unscaled_line]
+        scaled_line = [v * PositionScale for v in unscaled_line[0:4]]
         barrier_rects.append(line_to_rect(*scaled_line))
 
     for character in game_data["characters"] + [player]:
@@ -214,7 +255,7 @@ def simulate(game, game_data, dt):
 
             # Collide vertical
             if dy:
-                crect.center = (x, y + dy)
+                crect.center = (x + dx, y + dy)
                 collision = rects_collision(crect, lrect)
                 if collision[1]:
                     if dy > 0:
@@ -278,9 +319,6 @@ def render(game_data):
         (x, y, w, h, r, g, b) = floor
         drawrect(realworld, (r, g, b), camera, (x, y, w, h))
 
-    # Draw the player
-    drawcharacter(realworld, ColorHead, ColorShirt, camera, player_position, mouse_angle)
-
     # Draw the other characters
     for character in game_data["characters"]:
         position = get_render_position(character)
@@ -288,6 +326,9 @@ def render(game_data):
         drawcharacter(realworld, ColorHead, ColorShirt, camera, position, angle)
 
     # TODO draw the monsters
+
+    # Draw the player
+    drawcharacter(realworld, ColorHead, ColorShirt, camera, player_position, mouse_angle)
 
     for wall in area_map["structures"]["walls"]:
         (x0, y0, x1, y1) = wall
@@ -298,15 +339,15 @@ def render(game_data):
         cast_shadow(light, Shadow, camera, player_position, wall)
 
     for door in area_map["structures"]["doors"]:
-        (x0, y0, x1, y1) = door
+        (x0, y0, x1, y1, locked) = door
         wrect = line_to_rect(x0, y0, x1, y1)
         if not screen_rect.colliderect(wrect):
             continue
         drawline(realworld, ColorDoor, camera, (x0, y0), (x1, y1), 5)
-        cast_shadow(light, Shadow, camera, player_position, door)
+        cast_shadow(light, Shadow, camera, player_position, door[0:4])
 
     for window in area_map["structures"]["windows"]:
-        (x0, y0, x1, y1) = window
+        (x0, y0, x1, y1, locked) = window
         wrect = line_to_rect(x0, y0, x1, y1)
         if not screen_rect.colliderect(wrect):
             continue
