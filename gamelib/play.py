@@ -31,7 +31,7 @@ Size = (Width, Height) = (200, 200)
 # Minimap info
 MinimapSize = (MinimapWidth, MinimapHeight) = (int(Width * 0.15), int(Height * 0.15))
 MinimapMargin = (int(MinimapWidth * 0.5), int (MinimapHeight * 0.5))
-MinimapAlpha = 128
+MinimapAlpha = 255
 MinimapForeground = (160, 240, 80)
 MinimapBackground = (60, 100, 150)
 MinimapPersonIndicator = (20, 0, 20)
@@ -68,14 +68,23 @@ DistanceInteract = 20 * ScalePosition
 SpeedPerson = 2
 SpeedMonster = 2 * SpeedPerson
 
-# Timers
+# Monster timers
 TimerRest = 8000
-TimerChase = 4000
-TimerWander = 18000
+TimerHunt = 4000
+TimerWander = 4000
 TimerDeath = 2000
+TimerUncertainty = 1000
 
 # Sound info
 StepSoundThreshold = 300
+
+SoundStepDistance = 1500
+SoundOpenDistance = 2500
+SoundNotOpenDistance = 2500
+SoundBreakDistance = 8000
+
+# SoundMonsterStepDistance = 3000 we just add 1500 elsewhere
+SoundMonsterVoiceDistance = 8000
 
 def reset_data():
     return {
@@ -115,14 +124,10 @@ def init():
     ###############
     # Load audios #
     ###############
-    resources["human_steps"] = [
-        pygame.mixer.Sound(data.filepath("human_step_0.wav")),
-        pygame.mixer.Sound(data.filepath("human_step_1.wav")),
-    ]
-    resources["monster_steps"] = [
-        pygame.mixer.Sound(data.filepath("monster_step_0.wav")),
-        pygame.mixer.Sound(data.filepath("monster_step_1.wav")),
-    ]
+    resources["human_step_0"] = pygame.mixer.Sound(data.filepath("human_step_0.wav"))
+    resources["human_step_1"] = pygame.mixer.Sound(data.filepath("human_step_0.wav"))
+    resources["monster_step_0"] = pygame.mixer.Sound(data.filepath("monster_step_0.wav"))
+    resources["monster_step_1"] = pygame.mixer.Sound(data.filepath("monster_step_1.wav"))
     resources["break_door"] = pygame.mixer.Sound(data.filepath("break_door.wav"))
     resources["break_window"] = pygame.mixer.Sound(data.filepath("break_window.wav"))
     resources["open_door"] = pygame.mixer.Sound(data.filepath("open_door.wav"))
@@ -163,9 +168,10 @@ def generate_map(game_data):
             "type": "monster",
             "position": (x * ScalePosition, y * ScalePosition),
             "next_position": (x * ScalePosition, y * ScalePosition),
+            "target_location": (x * ScalePosition, y * ScalePosition),
             "angle": n,
-            "state": "resting",
-            "timer": 0,
+            "state": "rest",
+            "timer": TimerRest + random.randint(-TimerUncertainty, TimerUncertainty),
             "stepsound": 0,
         })
 
@@ -205,12 +211,13 @@ def interact(game_data):
     structures = game_data["map"]["structures"]
     doors = structures["doors"]
     windows = structures["windows"]
+    location = get_position(game_data["player"])
     if open_passage(game_data, doors, force=False):
-        resources["open_door"].play()
+        playsound(game_data, "open_door", location, SoundOpenDistance, True)
     elif open_passage(game_data, windows, force=False):
-        resources["open_window"].play()
+        playsound(game_data, "open_window", location, SoundOpenDistance, True)
     else:
-        resources["open_not"].play()
+        playsound(game_data, "open_door", location, SoundBreakDistance, True)
 
 def force_open(game_data):
     structures = game_data["map"]["structures"]
@@ -292,14 +299,40 @@ def simulate(game, game_data, dt):
                 set_next_position(c0, (nx0, ny0))
                 set_next_position(c1, (nx1, ny1))
 
-    # Collide characters with monsters
+    # Update monsters
     monsters = game_data["monsters"]
-    for c in all_characters:
-        for m in monsters:
-            (x0, y0) = p0 = get_next_position(c)
-            (x1, y1) = p1 = get_next_position(m)
+    for m in monsters:
+        # Discount timers and possibly change the monster's state
+        m["timer"] -= dt
+        if m["timer"] < 0:
+            next_state = random.choice(("rest", "wander"))
+            if next_state == "rest":
+                set_monster_state(m, "rest", TimerRest)
+                m["target_location"] = get_position(m)
+            else:
+                set_monster_state(m, "wander", TimerWander)
+                x = random.randint(0, int(mapgenerator.MapWidth * ScalePosition))
+                y = random.randint(0, int(mapgenerator.MapHeight * ScalePosition))
+                m["target_location"] = (x,  y)
 
-            distance = point_point_distance(p0, p1)
+        # Walk towards the location
+        (x, y) = pm = get_next_position(m)
+        (tx, ty) = m["target_location"]
+        (xd, yd) = (tx - x, ty - y)
+        if xd or yd:
+            if m["state"] == "wander":
+                speed = SpeedPerson
+            else:
+                speed = SpeedMonster
+            angle = math.atan2(yd, xd)
+            nx = x + min(math.cos(angle) * speed * dt, xd)
+            ny = y + min(math.sin(angle) * speed * dt, yd)
+            set_next_position(m, (nx, ny))
+
+        # Kill characters
+        for c in all_characters:
+            (xc, yc) = pc = get_next_position(c)
+            distance = point_point_distance(pc, pm)
             if distance < BoxMonster:
                 kill_character(c)
 
@@ -357,15 +390,22 @@ def simulate(game, game_data, dt):
         barrier_rects.append(line_to_rect(*scaled_line))
 
     for character in all_characters + monsters:
+        if character["type"] == "human":
+            box = BoxPerson
+        else:
+            box = BoxMonster
         (x, y) = get_position(character)
         (x1, y1) = get_next_position(character)
         (dx, dy) = (x1 - x, y1 - y)
-        crect = pygame.rect.Rect(0, 0, BoxPerson, BoxPerson)
+        rect0 = pygame.rect.Rect(0, 0, box, box)
+        rect0.center = (x, y)
 
         for lrect in barrier_rects:
             # Collide horizontal
             if dx:
-                crect.center = (x + dx, y)
+                xrect = pygame.rect.Rect(0, 0, box, box)
+                xrect.center = (x + dx, y)
+                crect = rect0.union(xrect)
                 collision = rects_collision(crect, lrect)
                 if collision[0]:
                     if dx > 0:
@@ -377,7 +417,9 @@ def simulate(game, game_data, dt):
 
             # Collide vertical
             if dy:
-                crect.center = (x + dx, y + dy)
+                yrect = pygame.rect.Rect(0, 0, box, box)
+                yrect.center = (x, y + dy)
+                crect = rect0.union(yrect)
                 collision = rects_collision(crect, lrect)
                 if collision[1]:
                     if dy > 0:
@@ -666,4 +708,37 @@ def kill_character(character):
 
 def emit_step_sound(game_data, character):
     character["stepsound"] = 0
-    resources[character["type"] + "_steps"][random.randint(0, 1)].play()
+    soundname = "{0}_step_{1}".format(character["type"], random.randint(0, 1))
+    location = get_position(character)
+    if character["type"] == "human":
+        is_tasty = True
+        distance = SoundStepDistance
+    else:
+        is_tasty = False
+        distance = SoundStepDistance * 2
+    playsound(game_data, soundname, location, distance, is_tasty)
+
+def playsound(game_data, soundname, location, hearing_distance, alert_monsters):
+    # TODO check if player is too far to hear the sound
+    game_data["sounds"].append({
+            "timestamp": game_data["miliseconds"],
+            "source": location,
+            "hearing_distance": hearing_distance,
+    })
+
+    if alert_monsters:
+        for monster in game_data["monsters"]:
+            mpos = get_position(monster)
+            mdist = point_point_distance(location, mpos)
+            if mdist < hearing_distance:
+                if monster["state"] != "hunt":
+                    playsound(game_data, "chase", mpos, SoundMonsterVoiceDistance, False)
+                set_monster_state(monster, "hunt", TimerHunt)
+                monster["target_location"] = location
+
+    # TODO alert monsters about tasty stuff
+    resources[soundname].play()
+
+def set_monster_state(monster, state, timer):
+    monster["state"] = state
+    monster["timer"] = timer + random.randint(-TimerUncertainty, TimerUncertainty)
