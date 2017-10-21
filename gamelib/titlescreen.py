@@ -1,5 +1,5 @@
 import pygame
-import numpy
+# import numpy
 
 Black = (0, 0, 0)
 White = (255, 255, 255)
@@ -14,7 +14,7 @@ resources = {}
 def init():
     screen = pygame.display.get_surface()
 
-    resources["scatter"] = numpy.random.random(Size)
+    # resources["scatter"] = numpy.random.random(Size)
     resources["vision"] = pygame.surface.Surface(Size)
     pygame.transform.scale(screen, Size, resources["vision"])
 
@@ -103,16 +103,16 @@ def render(data):
     (width, height) = vision.get_size()
 
     realworld = resources["realworld"]
-    scatter = resources["scatter"]
-    numpy.random.shuffle(scatter)
-    for x in range(Width):
-        for y in range(Height):
-            if scatter[x, y] < Pass:
-                color = realworld.get_at((x, y))
-                vision.set_at((x, y), color)
+    # scatter = resources["scatter"]
+    # numpy.random.shuffle(scatter)
+    # for x in range(Width):
+    #     for y in range(Height):
+    #         if scatter[x, y] < Pass:
+    #             color = realworld.get_at((x, y))
+    #             vision.set_at((x, y), color)
 
     screen = pygame.display.get_surface()
-    pygame.transform.scale(vision, screen.get_size(), screen)
+    pygame.transform.scale(realworld, screen.get_size(), screen)
     pygame.display.flip()
 
 def handle_swap(game):

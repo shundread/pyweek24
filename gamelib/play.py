@@ -1,5 +1,5 @@
 import pygame
-import numpy
+# import numpy
 import math
 import random
 
@@ -109,7 +109,7 @@ resources = {}
 
 def init():
     screen = pygame.display.get_surface()
-    resources["scatter"] = numpy.random.random(Size)
+    # resources["scatter"] = numpy.random.random(Size)
     resources["realworld"] = pygame.surface.Surface(Size)
 
     resources["minimap"] = pygame.surface.Surface(MinimapSize)
