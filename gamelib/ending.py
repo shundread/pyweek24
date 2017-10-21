@@ -6,6 +6,49 @@ White = (255, 255, 255)
 Size = (Width, Height) = (200, 200)
 Pass = 0.25
 
+EndingTexts = {
+    0: [
+        "As the blind beast",
+        "eats my flesh, I am",
+        "filled with terror",
+        "",
+        "The world goes dark,",
+        "and then there is",
+        "nothing",
+    ],
+    1: [
+        "Unable to save anyone",
+        "else, I run away and",
+        "cry in shame",
+        "",
+        "Lost and alone, I find",
+        "myself hopeless and",
+        "certain that it will",
+        "not be long before",
+        "the beasts follow me",
+    ],
+    2: [
+        "The two of us escape",
+        "the area with pain in",
+        "our hearts",
+        "",
+        "We are not sure how",
+        "we are going to manage",
+        "out there, but we will",
+        "try our best"
+    ],
+    3: [
+        "We run into the night",
+        "quietly and hastily,",
+        "escaping the monsters",
+        "",
+        "No matter how far we",
+        "have to go, or what",
+        "threats we face, I",
+        "will protect us all",
+    ]
+}
+
 def reset_data():
     return { "miliseconds": 0 }
 
@@ -26,16 +69,7 @@ def init():
     resources["realworld"] = resources["black"]
 
     # Background story
-    set_text([
-        "We run into the night",
-        "with haste, escaping",
-        "the blind monsters",
-        "",
-        "No matter how far we",
-        "have to go, or what",
-        "threats we face, I",
-        "will protect us all",
-    ])
+    set_text(EndingTexts[3])
 
 def set_text(lines):
     surface = pygame.surface.Surface(Size)

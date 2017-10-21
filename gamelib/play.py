@@ -56,6 +56,7 @@ def reset_data():
         "player": {
             "position": (0, 0),
             "next_position": (0, 0),
+            "state": "alive",
         },
         "characters": []
     }
@@ -279,7 +280,17 @@ def check_game_over(game, game_data):
     (x, y) = get_render_position(game_data["player"])
     if y > mapgenerator.MapHeight + 100:
         game.data["gamestate"] = "newending"
+        game.data["survivors"] = count_survivors(game_data)
         return True
+
+def count_survivors(game_data):
+    if game_data["player"]["state"] == "dead":
+        return 0
+    survivors = 1
+    for character in game_data["characters"]:
+        if character["state"] == "following":
+            survivors += 1
+    return survivors
 
 def point_point_distance((x0, y0), (x1, y1)):
     return ((x1 - x0) ** 2 + (y1 - y0) ** 2) ** 0.5

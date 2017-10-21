@@ -89,6 +89,7 @@ def simulate(game, data, dt):
     if gamestate == "newending":
         data["ending"] = ending.reset_data()
         ending.init()
+        ending.set_text(ending.EndingTexts[data["survivors"]])
         data["gamestate"] = "ending"
     if gamestate == "ending":
         return ending.simulate(game, data["ending"], dt)
