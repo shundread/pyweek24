@@ -7,6 +7,8 @@ MaximumBuildings = 15
 MinimumRooms = 2
 MaximumRooms = 4
 BuildingSize = 250
+LotRows = 5
+LotColumns = 5
 LotSize = int(BuildingSize * 1.4)
 SplitLimit = int(math.ceil(0.4 * BuildingSize))
 HalfDoorLength = 20
@@ -26,14 +28,15 @@ def generate_map(game_data):
 
     # Generate the lot "vacancies" and shuffle them for assignment of the areas
     vacant_lots = []
-    for lotx in [-2, -1, 0, 1, 2]:
-        for loty in [-2, -1, 0, 1, 2]:
+    for lotx in range(LotColumns):
+        for loty in range(LotRows):
             vacant_lots.append((lotx, loty))
     random.shuffle(vacant_lots)
 
     # Pick lots at random and generate buildings on them
     n_buildings = random.randint(MinimumBuildings, MaximumBuildings)
-    buildings = {
+    structures = {
+        "buildings": [],
         "walls": [],
         "doors": [],
         "windows": [],
@@ -49,18 +52,19 @@ def generate_map(game_data):
         bheight = int(random.randint(70, 100) * 0.01 * BuildingSize)
         bcenterx = lot.centerx + int(random.randint(-10, 10) * 0.01 * LotSize)
         bcentery = lot.centery + int(random.randint(-10, 10) * 0.01 * LotSize)
-        building = generate_building(bcenterx, bcentery, bwidth, bheight)
+        structure = generate_building(bcenterx, bcentery, bwidth, bheight)
 
-        buildings["walls"].extend(building["walls"])
-        buildings["doors"].extend(building["doors"])
-        buildings["windows"].extend(building["windows"])
-        buildings["floors"].extend(building["floors"])
+        structures["buildings"].extend(structure["buildings"])
+        structures["walls"].extend(structure["walls"])
+        structures["doors"].extend(structure["doors"])
+        structures["windows"].extend(structure["windows"])
+        structures["floors"].extend(structure["floors"])
         if len(area["family_spawns"]) < SpawnsFamily:
-            (x, y, w, h, r, g, b) = random.choice(building["floors"])
+            (x, y, w, h, r, g, b) = random.choice(structure["floors"])
             position = (x + int(w * 0.5), y + int(h * 0.5))
             area["family_spawns"].append(position)
 
-    area["structures"] = buildings
+    area["structures"] = structures
 
     # Generate open areas on the remaining lots
     while len(vacant_lots) > 0:
@@ -154,7 +158,14 @@ def generate_building(centerx, centery, width, height):
 
     lwalls = [w for w in walls]
     floors = [make_floor(r) for r in rooms]
-    return { "walls": lwalls, "doors": doors, "windows": windows, "floors": floors }
+    rbuilding = [building.left, building.top, building.width, building.height]
+    return {
+        "buildings": [rbuilding],
+        "walls": lwalls,
+        "doors": doors,
+        "windows": windows,
+        "floors": floors
+    }
 
 def make_floor(room):
     return (

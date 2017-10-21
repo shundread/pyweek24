@@ -4,21 +4,34 @@ import math
 import random
 import mapgenerator
 
+# Colors
 Black = (0, 0, 0)
 White = (255, 255, 255)
-Size = (Width, Height) = (200, 200)
-Pass = 0.40
-HalfConeAngle = 0.20 * math.pi
-Shadow = White
-ShadowAlpha = 128
-ShadowLength = Width * 10
-
-# Colors
 ColorDoor = (140, 110, 0)
 ColorWall = (128, 128, 128)
 ColorWindow = (0, 0, 255)
 ColorHead = (200, 200, 0)
 ColorShirt = (30, 200, 40)
+
+# Surface info
+Size = (Width, Height) = (200, 200)
+
+# Minimap info
+MinimapSize = (MinimapWidth, MinimapHeight) = (int(Width * 0.15), int(Height * 0.15))
+MinimapMargin = (int(MinimapWidth * 0.5), int (MinimapHeight * 0.5))
+MinimapAlpha = 128
+MinimapForeground = (120, 240, 40)
+MinimapBackground = (40, 80, 120)
+MinimapPersonIndicator = (255, 0, 255)
+
+# Light parameters
+HalfConeAngle = 0.20 * math.pi
+Shadow = White
+ShadowAlpha = 128
+ShadowLength = Width * 10
+
+# Funky update parameters (UNUSED)
+Pass = 0.40
 
 # Entity size info
 SizeHead = 4
@@ -51,9 +64,14 @@ def init():
     resources["scatter"] = numpy.random.random(Size)
     resources["realworld"] = pygame.surface.Surface(Size)
 
+    resources["minimap"] = pygame.surface.Surface(MinimapSize)
+    resources["minimap"].convert()
+    resources["minimap"].set_alpha(MinimapAlpha)
+
     resources["light"] = pygame.surface.Surface(Size)
     resources["light"].convert()
     resources["light"].set_colorkey(Black)
+    resources["light"].set_alpha(ShadowAlpha)
 
     resources["hud"] = pygame.surface.Surface(Size)
 
@@ -63,7 +81,11 @@ def init():
 def generate_map(game_data):
     mapgenerator.generate_map(game_data)
 
-    # Place the family members
+    # Place the player & other family members
+    family_spawns = game_data["map"]["family_spawns"]
+    (x, y) = family_spawns.pop()
+    set_position(game_data["player"], (x * PositionScale, y * PositionScale))
+
     game_data["characters"] = []
     for (n, (x, y)) in enumerate(game_data["map"]["family_spawns"]):
         game_data["characters"].append({
@@ -73,13 +95,31 @@ def generate_map(game_data):
             "state": "hiding",
         })
 
+
     # Place the monsters
     # TODO
 
-    generate_minimap()
 
-def generate_minimap():
-    pass
+def draw_minimap(game_data):
+    minimap = resources["minimap"]
+    minimap.fill(MinimapBackground)
+    fullwidth = float(mapgenerator.LotSize * mapgenerator.LotColumns)
+    fullheight = float(mapgenerator.LotSize * mapgenerator.LotRows)
+    xscale = MinimapWidth / fullwidth
+    yscale = MinimapHeight / fullheight
+    area_map = game_data["map"]
+    for floor in area_map["structures"]["buildings"]:
+        rect = pygame.rect.Rect(*floor[0:4])
+        rect.left = int(round(rect.left * xscale))
+        rect.top = int(round(rect.top * yscale))
+        rect.width = int(math.ceil(rect.width * xscale))
+        rect.height = int(math.ceil(rect.height * yscale))
+        pygame.draw.rect(minimap, MinimapForeground, rect)
+
+    (x, y) = get_render_position(game_data["player"])
+    xs = int(round(x * xscale))
+    ys = int(round(y  * yscale))
+    minimap.set_at((xs, ys), MinimapPersonIndicator)
 
 def handle_key(game, game_data, event):
     if (event.key == pygame.K_ESCAPE):
@@ -273,14 +313,19 @@ def render(game_data):
         drawline(realworld, ColorWindow, camera, (x0, y0), (x1, y1), 5)
 
     # Apply the light to the surface
-    light.set_alpha(ShadowAlpha)
     realworld.blit(light, (0, 0))
 
     # TODO: cpu-friendly funky vision updates
+    vision = resources["vision"]
+    vision.blit(realworld, (0, 0))
+
+    # Adds HUD layer and minimap
+    draw_minimap(game_data)
+    vision.blit(resources["minimap"], (MinimapMargin, MinimapMargin))
 
     # Renders the realworld (or the vision, if we got that far with the project)
     screen = pygame.display.get_surface()
-    pygame.transform.scale(realworld, screen.get_size(), screen)
+    pygame.transform.scale(vision, screen.get_size(), screen)
     pygame.display.flip()
 
 def drawcircle(surface, color, (cx, cy), (x, y), radius):
