@@ -120,5 +120,5 @@ class Game(object):
 
 def main():
     game = Game()
-    game.load_data()
+    # game.load_data()
     game.run()

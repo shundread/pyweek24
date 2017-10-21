@@ -34,10 +34,10 @@ def handle_input(game, data):
             return game.quit()
 
         # Swap handling and data dump / reload
-        if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_F1: return handle_swap(game, data)
-            if event.key == pygame.K_F5: return game.dump_data()
-            if event.key == pygame.K_F9: return game.load_data()
+        # if event.type == pygame.KEYDOWN:
+        #     if event.key == pygame.K_F1: return handle_swap(game, data)
+        #     if event.key == pygame.K_F5: return game.dump_data()
+        #     if event.key == pygame.K_F9: return game.load_data()
 
         # Check if we're in different gamestates and delegate input handle to
         if event.type == pygame.KEYDOWN:

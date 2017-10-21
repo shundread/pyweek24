@@ -324,6 +324,7 @@ def simulate(game, game_data, dt):
             if next_state == "rest":
                 set_monster_state(m, "rest", TimerRest)
                 m["target_location"] = get_position(m)
+                playsound(game_data, "growl", get_position(m), SoundMonsterVoiceDistance, False)
             else:
                 set_monster_state(m, "wander", TimerWander)
                 x = random.randint(0, int(mapgenerator.MapWidth * ScalePosition))
@@ -349,7 +350,7 @@ def simulate(game, game_data, dt):
             (xc, yc) = pc = get_next_position(c)
             distance = point_point_distance(pc, pm)
             if distance < BoxMonster:
-                kill_character(c)
+                kill_character(game_data, c)
 
     # The player never gets pushed around, only killed :)
     (dx, dy) = (0, 0)
@@ -725,9 +726,10 @@ def get_next_position(entity):
 def set_next_position(entity, (x, y)):
     entity["next_position"] = (x, y)
 
-def kill_character(character):
+def kill_character(game_data, character):
     if character["state"] in ["dead", "dying"]:
         return
+    playsound(game_data, "kill", get_position(character), SoundMonsterVoiceDistance, False)
     character["state"] = "dying"
     character["deathtimer"] = TimerDeath
 
