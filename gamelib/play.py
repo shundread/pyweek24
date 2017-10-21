@@ -48,6 +48,7 @@ ScalePosition = 20
 
 # Collision box sizes
 BoxPerson = 12 * ScalePosition
+BoxMonster = 15 * ScalePosition
 
 # Distances
 DistanceRescue = 30 * ScalePosition
@@ -56,11 +57,19 @@ DistanceInteract = 20 * ScalePosition
 
 # Speeds
 SpeedPerson = 4
+SpeedMonster = 2 * SpeedPerson
+
+# Timers
+TimerRest = 8000
+TimerChase = 4000
+TimerWander = 18000
+TimerDeath = 1000
 
 def reset_data():
     return {
         "miliseconds": 0,
         "player": {
+            "type": "player",
             "position": (0, 0),
             "next_position": (0, 0),
             "state": "alive",
@@ -100,6 +109,7 @@ def generate_map(game_data):
     game_data["characters"] = []
     for (n, (x, y)) in enumerate(game_data["map"]["family_spawns"]):
         game_data["characters"].append({
+            "type": "human",
             "position": (x * ScalePosition, y * ScalePosition),
             "next_position": (x * ScalePosition, y * ScalePosition),
             "angle": n,
@@ -110,6 +120,7 @@ def generate_map(game_data):
     game_data["monsters"] = []
     for (n, (x, y)) in enumerate(game_data["map"]["monster_spawns"]):
         game_data["monsters"].append({
+            "type": "monster",
             "position": (x * ScalePosition, y * ScalePosition),
             "next_position": (x * ScalePosition, y * ScalePosition),
             "angle": n,
@@ -213,7 +224,7 @@ def simulate(game, game_data, dt):
 
     # Collide characters with each other
     all_characters = characters + [player]
-    for (i, c0) in enumerate(characters):
+    for c0 in characters:
         for c1 in all_characters:
             if c0 == c1:
                 continue
@@ -234,6 +245,17 @@ def simulate(game, game_data, dt):
                 set_next_position(c0, (nx0, ny0))
                 set_next_position(c1, (nx1, ny1))
 
+    # Collide characters with monsters
+    monsters = game_data["monsters"]
+    for c in all_characters:
+        for m in monsters:
+            (x0, y0) = p0 = get_next_position(c)
+            (x1, y1) = p1 = get_next_position(m)
+
+            distance = point_point_distance(p0, p1)
+            if distance < BoxMonster:
+                kill_character(c)
+
     # The player never gets pushed around, only killed :)
     (dx, dy) = (0, 0)
     if keys[pygame.K_w]: dy -= SpeedPerson * dt
@@ -242,19 +264,31 @@ def simulate(game, game_data, dt):
     if keys[pygame.K_d]: dx += SpeedPerson * dt
     set_next_position(player, (px + dx, py + dy))
 
+    # Bleeds dying characters to death
+    all_characters = characters + [player]
+    for character in all_characters:
+        if character["state"] in ["dead", "dying"]:
+            timer = character["deathtimer"]
+            character["deathtimer"] = max(timer - dt, 0)
+            if character["deathtimer"] == 0:
+                character["state"] = "dead"
+
+            # Prevent dead or dying characters from moving
+            set_next_position(character, get_position(character))
+
     # Collide characters with solid structures
     area_map = game_data["map"]
     structures = area_map["structures"]
 
     # Collide characters with trees
-    for c in all_characters:
+    for c in all_characters + monsters:
         for tree in structures["trees"]:
             (xc, yc) = pc = get_next_position(c)
             (xt, yt) = pt = (tree[0] * ScalePosition, tree[1] * ScalePosition)
 
             distance = point_point_distance(pt, pc)
             if distance < SizeTree * ScalePosition:
-                (dx, dy) = (xt - xp, yt - yp)
+                (dx, dy) = (xt - xc, yt - yc)
                 angle = math.atan2(dy, dx)
                 pushback = SizeTree * ScalePosition
 
@@ -275,7 +309,7 @@ def simulate(game, game_data, dt):
         scaled_line = [v * ScalePosition for v in unscaled_line[0:4]]
         barrier_rects.append(line_to_rect(*scaled_line))
 
-    for character in game_data["characters"] + [player]:
+    for character in all_characters + monsters:
         (x, y) = get_position(character)
         (x1, y1) = get_next_position(character)
         (dx, dy) = (x1 - x, y1 - y)
@@ -309,7 +343,13 @@ def simulate(game, game_data, dt):
         set_next_position(character, (x + dx, y + dy))
 
 def check_game_over(game, game_data):
-    (x, y) = get_render_position(game_data["player"])
+    player = game_data["player"]
+    if player["state"] == "dead":
+        game.data["gamestate"] = "newending"
+        game.data["survivors"] = 0
+        return True
+
+    (x, y) = get_render_position(player)
     if y > mapgenerator.MapHeight + 100:
         game.data["gamestate"] = "newending"
         game.data["survivors"] = count_survivors(game_data)
@@ -551,3 +591,9 @@ def get_next_position(entity):
 
 def set_next_position(entity, (x, y)):
     entity["next_position"] = (x, y)
+
+def kill_character(character):
+    if character["state"] in ["dead", "dying"]:
+        return
+    character["state"] = "dying"
+    character["deathtimer"] = TimerDeath
