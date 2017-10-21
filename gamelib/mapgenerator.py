@@ -7,6 +7,8 @@ BuildingSize = 250
 LotRows = 5
 LotColumns = 5
 LotSize = int(BuildingSize * 1.4)
+
+# Limits
 MapSize = (MapWidth, MapHeight) = (LotSize * 1.1 * LotColumns, LotSize * 1.1 * LotRows)
 ExitLeft = MapWidth * 0.45
 ExitRight = MapWidth * 0.55
@@ -14,6 +16,10 @@ ExitRight = MapWidth * 0.55
 # Building quantities
 MinimumBuildings = 10
 MaximumBuildings = 15
+
+# Open area quantities
+MinimumTrees = 5
+MaximumTrees = 15
 
 # Limit for splitting the buildings
 SplitLimit = int(math.ceil(0.4 * BuildingSize))
@@ -53,6 +59,7 @@ def generate_map(game_data):
         "doors": [],
         "windows": [],
         "floors": [],
+        "trees": [],
     }
     for b in range(n_buildings):
         # Get the lot's area
@@ -62,8 +69,8 @@ def generate_map(game_data):
         # Sets the building dimensions
         bwidth = int(random.randint(70, 100) * 0.01 * BuildingSize)
         bheight = int(random.randint(70, 100) * 0.01 * BuildingSize)
-        bcenterx = lot.centerx + int(random.randint(-10, 10) * 0.01 * LotSize)
-        bcentery = lot.centery + int(random.randint(-10, 10) * 0.01 * LotSize)
+        bcenterx = lot.centerx
+        bcentery = lot.centery
         structure = generate_building(bcenterx, bcentery, bwidth, bheight)
 
         structures["buildings"].extend(structure["buildings"])
@@ -76,15 +83,22 @@ def generate_map(game_data):
             position = (x + int(w * 0.5), y + int(h * 0.5))
             area["family_spawns"].append(position)
 
-    area["structures"] = structures
-
     # Generate open areas on the remaining lots
     while len(vacant_lots) > 0:
         # Get the lot's area
         (lotx, loty) = vacant_lots.pop()
         lot = lot_rect(lotx, loty)
 
+        trees = random.randint(MinimumTrees, MaximumTrees)
+        for t in range(trees):
+            x = random.randint(lot.left, lot.right)
+            y = random.randint(lot.top, lot.bottom)
+
+            structures["trees"].append((x, y))
+
         # TODO spawn trees, bushes & rocks
+
+    area["structures"] = structures
 
     area["limits"] = [
         (0, 0, 0, MapHeight), #left
@@ -104,7 +118,8 @@ def lot_rect(x, y):
     return lot
 
 def generate_building(centerx, centery, width, height):
-    building = pygame.rect.Rect((centerx, centery), (width, height))
+    building = pygame.rect.Rect((0, 0), (width, height))
+    building.center = (centerx, centery)
     rooms = [building]
     splitting = True
     while splitting:

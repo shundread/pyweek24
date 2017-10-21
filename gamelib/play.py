@@ -12,6 +12,7 @@ ColorWall = (128, 128, 128)
 ColorWindow = (0, 0, 255)
 ColorHead = (200, 200, 0)
 ColorShirt = (30, 200, 40)
+ColorTree = (130, 110, 0)
 
 # Surface info
 Size = (Width, Height) = (200, 200)
@@ -36,6 +37,8 @@ Pass = 0.40
 # Entity size info
 SizeHead = 4
 SizeShoulder = 4
+SizeTorso = 5
+SizeTree = 8
 
 ScalePosition = 20
 
@@ -228,9 +231,27 @@ def simulate(game, game_data, dt):
     if keys[pygame.K_d]: dx += SpeedPerson * dt
     set_next_position(player, (px + dx, py + dy))
 
-    # Collide characters with walls
+    # Collide characters with solid structures
     area_map = game_data["map"]
     structures = area_map["structures"]
+
+    # Collide characters with trees
+    for c in all_characters:
+        for tree in structures["trees"]:
+            (xc, yc) = pc = get_next_position(c)
+            (xt, yt) = pt = (tree[0] * ScalePosition, tree[1] * ScalePosition)
+
+            distance = point_point_distance(pt, pc)
+            if distance < SizeTree * ScalePosition:
+                (dx, dy) = (xt - xp, yt - yp)
+                angle = math.atan2(dy, dx)
+                pushback = SizeTree * ScalePosition
+
+                nx = xc - math.cos(angle) * pushback
+                ny = yc - math.sin(angle) * pushback
+                set_next_position(c, (nx, ny))
+
+    # Collide characters with walls
 
     line_barriers = \
         structures["windows"] + \
@@ -327,7 +348,7 @@ def render(game_data):
     # Renders the player and the light surface
     light = resources["light"]
     light.fill(Black)
-    # light.fill(White)d
+    # light.fill(White)
     # drawpoly(light, Black, camera, [
     #     player_position,
     #     (
@@ -377,6 +398,21 @@ def render(game_data):
         if not screen_rect.colliderect(wrect):
             continue
         drawline(realworld, ColorWindow, camera, (x0, y0), (x1, y1), 5)
+
+    for tree in area_map["structures"]["trees"]:
+        wrect = pygame.rect.Rect(0, 0, 2 * SizeTree, 2 * SizeTree)
+        wrect.center = tree
+        if not screen_rect.colliderect(wrect):
+            continue
+        (x, y) = tree
+        (dx, dy) = (x - px, y - py)
+        angle = math.atan2(dy, dx) + math.pi * 0.5
+        drawcircle(realworld, ColorTree, camera, tree, SizeTree)
+        x0 = x - math.cos(angle) * SizeTree
+        y0 = y - math.sin(angle) * SizeTree
+        x1 = x + math.cos(angle) * SizeTree
+        y1 = y + math.sin(angle) * SizeTree
+        cast_shadow(light, Shadow, camera, player_position, (x0, y0, x1, y1))
 
     # Draw limits
     draw_limits(realworld, camera)
@@ -431,10 +467,10 @@ def drawcharacter(surface, color_head, color_shirt, camera, position, angle):
         px - int(4 * math.sin(angle)),
         py + int(4 * math.cos(angle)),
     )
-    drawcircle(surface, color_shirt, camera, shoulder_left, 4)
-    drawcircle(surface, color_shirt, camera, shoulder_right, 4)
-    drawcircle(surface, color_shirt, camera, position, 5)
-    drawcircle(surface, color_head, camera, position, 4)
+    drawcircle(surface, color_shirt, camera, shoulder_left, SizeShoulder)
+    drawcircle(surface, color_shirt, camera, shoulder_right, SizeShoulder)
+    drawcircle(surface, color_shirt, camera, position, SizeTorso)
+    drawcircle(surface, color_head, camera, position, SizeHead)
 
 def cast_shadow(surface, color, camera, (lx, ly), (x1, y1, x2, y2)):
     dy = y1 - ly
