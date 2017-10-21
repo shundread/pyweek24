@@ -10,11 +10,18 @@ White = (255, 255, 255)
 ColorDoor = (140, 110, 0)
 ColorWall = (128, 128, 128)
 ColorWindow = (0, 0, 255)
+ColorTree = (130, 110, 0)
+
 ColorHead = (200, 200, 0)
 ColorShirt = (30, 200, 40)
-ColorTree = (130, 110, 0)
+ColorDeadHead = (130, 100, 100)
+ColorDeadShirt = (60, 40, 40)
+
 ColorMonster = (170, 0, 40)
 ColorMonsterParticle = (250, 35, 80)
+
+ColorSchemeAlive = (ColorHead, ColorShirt)
+ColorSchemeDead = (ColorDeadHead, ColorDeadShirt)
 
 # Surface info
 Size = (Width, Height) = (200, 200)
@@ -63,7 +70,7 @@ SpeedMonster = 2 * SpeedPerson
 TimerRest = 8000
 TimerChase = 4000
 TimerWander = 18000
-TimerDeath = 1000
+TimerDeath = 2000
 
 def reset_data():
     return {
@@ -385,7 +392,8 @@ def render(game_data):
 
     mouse_offset = (mdx, mdy) = get_mouse_offset()
     mouse_angle = get_mouse_angle(mdx, mdy)
-    player_position = (px, py) = get_render_position(game_data["player"])
+    player = game_data["player"]
+    player_position = (px, py) = get_render_position(player)
     camera = (cx, cy) = (
         px + int(0.3 * mdx - 0.5 * Width),
         py + int(0.3 * mdy - 0.5 * Height)
@@ -420,7 +428,11 @@ def render(game_data):
     for character in game_data["characters"]:
         position = get_render_position(character)
         angle = character["angle"]
-        drawcharacter(realworld, ColorHead, ColorShirt, camera, position, angle)
+        if character["state"] in ["dead", "dying"]:
+            (head, shirt) = ColorSchemeDead
+        else:
+            (head, shirt) = ColorSchemeAlive
+        drawcharacter(realworld, head, shirt, camera, position, angle)
 
     # TODO draw the monsters
     for monster in game_data["monsters"]:
@@ -429,7 +441,13 @@ def render(game_data):
         drawmonster(realworld, camera, position, game_data["miliseconds"])
 
     # Draw the player
-    drawcharacter(realworld, ColorHead, ColorShirt, camera, player_position, mouse_angle)
+    if player["state"] in ["dead", "dying"]:
+        (head, shirt) = ColorSchemeDead
+    else:
+        (head, shirt) = ColorSchemeAlive
+    drawcharacter(realworld, head, shirt, camera, position, angle)
+
+    drawcharacter(realworld, head, shirt, camera, player_position, mouse_angle)
 
     for wall in area_map["structures"]["walls"]:
         (x0, y0, x1, y1) = wall
