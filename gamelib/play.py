@@ -25,6 +25,8 @@ ColorMonsterParticle = (250, 35, 80)
 ColorSchemeAlive = (ColorHead, ColorShirt)
 ColorSchemeDead = (ColorDeadHead, ColorDeadShirt)
 
+ColorSound = (255, 0, 0)
+
 # Surface info
 Size = (Width, Height) = (200, 200)
 
@@ -39,8 +41,11 @@ MinimapPersonIndicator = (20, 0, 20)
 # Light parameters
 HalfConeAngle = 0.20 * math.pi
 Shadow = White
-ShadowAlpha = 128
+ShadowAlpha = 255
 ShadowLength = Width * 20
+
+# Hud parameters
+HudAlpha = 255
 
 # Funky update parameters (UNUSED)
 Pass = 0.40
@@ -114,9 +119,14 @@ def init():
     resources["light"] = pygame.surface.Surface(Size)
     resources["light"].convert()
     resources["light"].set_colorkey(Black)
-    resources["light"].set_alpha(ShadowAlpha)
+    if ShadowAlpha < 255:
+        resources["light"].set_alpha(ShadowAlpha)
 
     resources["hud"] = pygame.surface.Surface(Size)
+    resources["hud"].convert()
+    resources["hud"].set_colorkey(Black)
+    if HudAlpha < 255:
+        resources["hud"].set_alpha(HudAlpha)
 
     resources["vision"] = pygame.surface.Surface(Size)
     pygame.transform.scale(screen, Size, resources["vision"])
@@ -217,16 +227,17 @@ def interact(game_data):
     elif open_passage(game_data, windows, force=False):
         playsound(game_data, "open_window", location, SoundOpenDistance, True)
     else:
-        playsound(game_data, "open_door", location, SoundBreakDistance, True)
+        playsound(game_data, "open_not", location, SoundNotOpenDistance, True)
 
 def force_open(game_data):
     structures = game_data["map"]["structures"]
     doors = structures["doors"]
     windows = structures["windows"]
+    location = get_position(game_data["player"])
     if open_passage(game_data, doors, force=True):
-        resources["break_door"].play()
+        playsound(game_data, "break_door", location, SoundBreakDistance, True)
     elif open_passage(game_data, windows, force=True):
-        resources["break_window"].play()
+        playsound(game_data, "break_window", location, SoundBreakDistance, True)
 
 def open_passage(game_data, passages, force):
     player_position = get_position(game_data["player"])
@@ -236,20 +247,24 @@ def open_passage(game_data, passages, force):
         distance = point_point_distance(player_position, (x, y))
         if distance < DistanceInteract:
             if force:
-                print "forcing open the thing"
                 passages.pop(i)
                 return True
 
             if locked:
-                print "cannot open thing"
                 return False
             else:
-                print "opening the thing"
                 passages.pop(i)
                 return True
 
 def simulate(game, game_data, dt):
     game_data["miliseconds"] += dt
+
+    # Update / clear sounds
+    sounds = game_data["sounds"]
+    for sound in sounds:
+        sound["timer"] -= dt * 5
+    game_data["sounds"] = [sound for sound in sounds if sound["timer"] > 0]
+
     keys = pygame.key.get_pressed()
 
     player = game_data["player"]
@@ -592,9 +607,19 @@ def render(game_data):
     vision.blit(resources["minimap"], (MinimapMargin, MinimapMargin))
 
     # Renders the realworld (or the vision, if we got that far with the project)
+    hud = resources["hud"]
+    hud.fill(Black)
+    for sound in game_data["sounds"]:
+        draw_sound(hud, sound, camera)
+    vision.blit(hud, (0, 0))
+
     screen = pygame.display.get_surface()
     pygame.transform.scale(vision, screen.get_size(), screen)
     pygame.display.flip()
+
+def draw_sound(surface, sound, camera):
+    size = max(1, int((sound["distance"] - sound["timer"]) / ScalePosition))
+    drawcircle(surface, ColorSound, camera, get_render_position(sound), size, 1)
 
 def draw_limits(surface, camera):
     W = mapgenerator.MapWidth * 3
@@ -607,8 +632,8 @@ def draw_limits(surface, camera):
     drawrect(surface, White, camera, (EL, mapgenerator.MapHeight, W, H))
     drawrect(surface, White, camera, (ER, mapgenerator.MapHeight, W, H))
 
-def drawcircle(surface, color, (cx, cy), (x, y), radius):
-    pygame.draw.circle(surface, color, (x - cx, y - cy), radius)
+def drawcircle(surface, color, (cx, cy), (x, y), radius, width=0):
+    pygame.draw.circle(surface, color, (x - cx, y - cy), radius, width)
 
 def drawrect(surface, color, (cx, cy), (x, y, w, h)):
     pygame.draw.rect(surface, color, ((x - cx, y - cy), (w, h)))
@@ -722,8 +747,9 @@ def playsound(game_data, soundname, location, hearing_distance, alert_monsters):
     # TODO check if player is too far to hear the sound
     game_data["sounds"].append({
             "timestamp": game_data["miliseconds"],
-            "source": location,
-            "hearing_distance": hearing_distance,
+            "position": location,
+            "distance": hearing_distance,
+            "timer": hearing_distance,
     })
 
     if alert_monsters:

@@ -42,9 +42,9 @@ def init():
     font = pygame.font.SysFont("mono", 12, bold=True)
     lines = [
         "move around with 'WASD'",
-        "aim flashlight with mouse",
-        "interact with 'E'",
+        "open with 'E' or",
         "break open with 'R'",
+        "don't be too loud!"
         "",
         "press 'I' to start"
     ]
