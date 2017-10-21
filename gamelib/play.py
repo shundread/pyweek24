@@ -341,8 +341,8 @@ def simulate(game, game_data, dt):
             else:
                 speed = SpeedMonster
             angle = math.atan2(yd, xd)
-            nx = x + min(math.cos(angle) * speed * dt, xd)
-            ny = y + min(math.sin(angle) * speed * dt, yd)
+            nx = x + math.copysign(min(abs(math.cos(angle) * speed * dt), abs(xd)), xd)
+            ny = y + math.copysign(min(abs(math.sin(angle) * speed * dt), abs(yd)), yd)
             set_next_position(m, (nx, ny))
 
         # Kill characters

@@ -44,9 +44,9 @@ def init():
         "move around with 'WASD'",
         "open with 'E' or",
         "break open with 'R'",
-        "don't be too loud!"
+        "don't be too loud!",
         "",
-        "press 'I' to start"
+        "press 'S' to start"
     ]
     for (n, line) in enumerate(lines):
         text = font.render(line, False, Black)
@@ -84,7 +84,7 @@ FadeOutQuote = FadeInQuote + 5000
 
 def handle_key(game, data, event):
     data["miliseconds"] += FadeOutQuote
-    if (event.key == pygame.K_i):
+    if (event.key == pygame.K_s):
         game.data["gamestate"] = "newintro"
 
 
