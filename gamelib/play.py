@@ -10,8 +10,8 @@ Size = (Width, Height) = (200, 200)
 Pass = 0.40
 HalfConeAngle = 0.20 * math.pi
 Shadow = White
-ShadowAlpha = 255
-ShadowLength = Width * 2
+ShadowAlpha = 128
+ShadowLength = Width * 10
 
 # Colors
 ColorDoor = (140, 110, 0)
@@ -213,6 +213,11 @@ def render(game_data):
         py + int(0.3 * mdy - 0.5 * Height)
     )
 
+    screen_rect = pygame.rect.Rect((0, 0), (Width + 20, Height + 20))
+    screen_rect.topleft = camera
+    screen_rect.top -= 10
+    screen_rect.left -= 10
+
     # Renders the player and the light surface
     light = resources["light"]
     light.fill(Black)
@@ -246,16 +251,25 @@ def render(game_data):
 
     for wall in area_map["structures"]["walls"]:
         (x0, y0, x1, y1) = wall
+        wrect = line_to_rect(x0, y0, x1, y1)
+        if not screen_rect.colliderect(wrect):
+            continue
         drawline(realworld, ColorWall, camera, (x0, y0), (x1, y1), 5)
         cast_shadow(light, Shadow, camera, player_position, wall)
 
     for door in area_map["structures"]["doors"]:
         (x0, y0, x1, y1) = door
+        wrect = line_to_rect(x0, y0, x1, y1)
+        if not screen_rect.colliderect(wrect):
+            continue
         drawline(realworld, ColorDoor, camera, (x0, y0), (x1, y1), 5)
         cast_shadow(light, Shadow, camera, player_position, door)
 
     for window in area_map["structures"]["windows"]:
         (x0, y0, x1, y1) = window
+        wrect = line_to_rect(x0, y0, x1, y1)
+        if not screen_rect.colliderect(wrect):
+            continue
         drawline(realworld, ColorWindow, camera, (x0, y0), (x1, y1), 5)
 
     # Apply the light to the surface

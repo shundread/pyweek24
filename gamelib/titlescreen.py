@@ -44,9 +44,9 @@ def init():
     lines = [
         "move around with 'WASD'",
         "aim flashlight with mouse",
-        "interact with 'E'",
+        "interact with 'I'",
         "",
-        "press 'x' to start"
+        "press 'I' to start"
     ]
     for (n, line) in enumerate(lines):
         text = font.render(line, False, Black)
@@ -80,7 +80,7 @@ def init():
     resources["realworld"] = quote
 
 def handle_key(game, data, event):
-    if (event.key == pygame.K_x):
+    if (event.key == pygame.K_i):
         game.data["gamestate"] = "newgame"
 
 FadeInQuote = 1000
