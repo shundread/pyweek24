@@ -48,7 +48,7 @@ DistanceFollow = 28 * PositionScale
 DistanceInteract = 20 * PositionScale
 
 # Speeds
-SpeedPerson = 2
+SpeedPerson = 4
 
 def reset_data():
     return {
@@ -106,22 +106,22 @@ def generate_map(game_data):
 def draw_minimap(game_data):
     minimap = resources["minimap"]
     minimap.fill(MinimapBackground)
-    fullwidth = float(mapgenerator.LotSize * mapgenerator.LotColumns)
-    fullheight = float(mapgenerator.LotSize * mapgenerator.LotRows)
-    xscale = MinimapWidth / fullwidth
-    yscale = MinimapHeight / fullheight
+    fullwidth = float(mapgenerator.MapWidth)
+    fullheight = float(mapgenerator.MapHeight)
+    xscale = (MinimapWidth) / fullwidth
+    yscale = (MinimapHeight) / fullheight
     area_map = game_data["map"]
     for floor in area_map["structures"]["buildings"]:
         rect = pygame.rect.Rect(*floor[0:4])
-        rect.left = int(round(rect.left * xscale))
-        rect.top = int(round(rect.top * yscale))
+        rect.left = int(math.floor(rect.left * xscale))
+        rect.top = int(math.floor(rect.top * yscale))
         rect.width = int(math.ceil(rect.width * xscale))
         rect.height = int(math.ceil(rect.height * yscale))
         pygame.draw.rect(minimap, MinimapForeground, rect)
 
     (x, y) = get_render_position(game_data["player"])
-    xs = int(round(x * xscale))
-    ys = int(round(y  * yscale))
+    xs = int(math.floor(x * xscale))
+    ys = int(math.floor(y  * yscale))
     minimap.set_at((xs, ys), MinimapPersonIndicator)
 
 def handle_key(game, game_data, event):
@@ -226,9 +226,14 @@ def simulate(game, game_data, dt):
 
     # Collide characters with walls
     area_map = game_data["map"]
-    buildings = area_map["structures"]
+    structures = area_map["structures"]
 
-    line_barriers = buildings["windows"] + buildings["doors"] + buildings["walls"]
+    line_barriers = \
+        structures["windows"] + \
+        structures["doors"] + \
+        structures["walls"] + \
+        area_map["limits"]
+
     barrier_rects = []
     for unscaled_line in line_barriers:
         scaled_line = [v * PositionScale for v in unscaled_line[0:4]]

@@ -7,6 +7,9 @@ BuildingSize = 250
 LotRows = 5
 LotColumns = 5
 LotSize = int(BuildingSize * 1.4)
+MapSize = (MapWidth, MapHeight) = (LotSize * 1.1 * LotColumns, LotSize * 1.1 * LotRows)
+ExitLeft = MapWidth * 0.4
+ExitRight = MapWidth * 0.6
 
 # Building quantities
 MinimumBuildings = 10
@@ -83,11 +86,19 @@ def generate_map(game_data):
 
         # TODO spawn trees, bushes & rocks
 
+    area["limits"] = [
+        (0, 0, 0, MapHeight), #left
+        (MapWidth, 0, MapWidth, MapHeight), #right
+        (0, 0, MapWidth, 0), #top
+        (0, MapHeight, ExitLeft, MapHeight), #bottom-left
+        (ExitRight, MapHeight, MapWidth, MapHeight), #bottom-right
+    ]
+
     game_data["map"] = area
 
 def lot_rect(x, y):
     lot = pygame.rect.Rect(0, 0, LotSize, LotSize)
-    lot.center = (x * LotSize, y * LotSize)
+    lot.topleft = (x * LotSize, y * LotSize)
     return lot
 
 def generate_building(centerx, centery, width, height):
