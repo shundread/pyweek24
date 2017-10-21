@@ -8,8 +8,8 @@ LotRows = 5
 LotColumns = 5
 LotSize = int(BuildingSize * 1.4)
 MapSize = (MapWidth, MapHeight) = (LotSize * 1.1 * LotColumns, LotSize * 1.1 * LotRows)
-ExitLeft = MapWidth * 0.4
-ExitRight = MapWidth * 0.6
+ExitLeft = MapWidth * 0.45
+ExitRight = MapWidth * 0.55
 
 # Building quantities
 MinimumBuildings = 10
@@ -92,6 +92,8 @@ def generate_map(game_data):
         (0, 0, MapWidth, 0), #top
         (0, MapHeight, ExitLeft, MapHeight), #bottom-left
         (ExitRight, MapHeight, MapWidth, MapHeight), #bottom-right
+        (ExitLeft, MapHeight, ExitLeft, 2*MapHeight), #exit-corridor left
+        (ExitRight, MapHeight, ExitRight, 2*MapHeight), #exit-corridor right
     ]
 
     game_data["map"] = area

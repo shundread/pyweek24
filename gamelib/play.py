@@ -358,6 +358,9 @@ def render(game_data):
             continue
         drawline(realworld, ColorWindow, camera, (x0, y0), (x1, y1), 5)
 
+    # Draw limits
+    draw_limits(realworld, camera)
+
     # Apply the light to the surface
     realworld.blit(light, (0, 0))
 
@@ -373,6 +376,17 @@ def render(game_data):
     screen = pygame.display.get_surface()
     pygame.transform.scale(vision, screen.get_size(), screen)
     pygame.display.flip()
+
+def draw_limits(surface, camera):
+    W = mapgenerator.MapWidth * 3
+    H = mapgenerator.MapHeight * 3
+    EL = -W + mapgenerator.ExitLeft
+    ER = mapgenerator.ExitRight
+    drawrect(surface, White, camera, (-W, -mapgenerator.MapHeight, W, H))
+    drawrect(surface, White, camera, (-mapgenerator.MapWidth, -H, W, H))
+    drawrect(surface, White, camera, (mapgenerator.MapWidth, -mapgenerator.MapHeight, W, H))
+    drawrect(surface, White, camera, (EL, mapgenerator.MapHeight, W, H))
+    drawrect(surface, White, camera, (ER, mapgenerator.MapHeight, W, H))
 
 def drawcircle(surface, color, (cx, cy), (x, y), radius):
     pygame.draw.circle(surface, color, (x - cx, y - cy), radius)

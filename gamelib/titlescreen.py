@@ -7,9 +7,7 @@ Size = (Width, Height) = (200, 200)
 Pass = 0.25
 
 def reset_data():
-    return {
-        "miliseconds": 0,
-    }
+    return { "miliseconds": 0 }
 
 resources = {}
 
@@ -80,12 +78,14 @@ def init():
     resources["quote"] = quote
     resources["realworld"] = quote
 
-def handle_key(game, data, event):
-    if (event.key == pygame.K_i):
-        game.data["gamestate"] = "newgame"
-
 FadeInQuote = 1000
 FadeOutQuote = FadeInQuote + 5000
+
+def handle_key(game, data, event):
+    data["miliseconds"] += FadeOutQuote
+    if (event.key == pygame.K_i):
+        game.data["gamestate"] = "newintro"
+
 
 def simulate(game, data, dt):
     data["miliseconds"] += dt

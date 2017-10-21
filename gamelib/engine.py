@@ -3,6 +3,7 @@
 import pygame
 import titlescreen
 import play
+import intro
 
 def init():
     try:
@@ -51,17 +52,31 @@ def handle_key(game, data, event):
     gamestate = data["gamestate"]
     if (gamestate == "title"):
         return titlescreen.handle_key(game, data["title"], event)
+    if (gamestate == "intro"):
+        return intro.handle_key(game, data["intro"], event)
     if (gamestate == "game"):
         return play.handle_key(game, data["game"], event)
 
 def simulate(game, data, dt):
     gamestate = data["gamestate"]
+
+    # Title #
     if (gamestate == "newtitle"):
         data["title"] = titlescreen.reset_data()
         titlescreen.init()
         data["gamestate"] = "title"
     if (gamestate == "title"):
         return titlescreen.simulate(game, data["title"], dt)
+
+    # Intro #
+    if (gamestate == "newintro"):
+        data["intro"] = intro.reset_data()
+        intro.init()
+        data["gamestate"] = "intro"
+    if (gamestate == "intro"):
+        return intro.simulate(game, data["intro"], dt)
+
+    # New game #
     if (gamestate == "newgame"):
         data["game"] = play.reset_data()
         play.init()
@@ -74,6 +89,8 @@ def render(data):
     gamestate = data["gamestate"]
     if (gamestate == "title"):
         return titlescreen.render(data["title"])
+    if (gamestate == "intro"):
+        return intro.render(data["intro"])
     if (gamestate == "game"):
         return play.render(data["game"])
 
@@ -83,9 +100,16 @@ def handle_swap(game, data):
         reload(titlescreen)
         titlescreen.handle_swap(game)
         print("titlescreen swapped\n")
+
+        print("Attempting to swap intro module")
+        reload(intro)
+        intro.handle_swap(game)
+        print("Swapped intro module")
+
         print("Attempting to swap play module")
         reload(play)
         play.handle_swap(game)
+        print("Play module swapped")
     except Exception as error:
         print("Unable to swap the submodules, reason:")
         print(error)
@@ -99,7 +123,7 @@ def upgrade_data(data):
         print("Upgrading the game data. Old data:")
         print(data)
         if "gamestate" not in data:
-            data["gamestate"] = "title"
+            data["gamestate"] = "newtitle"
         print("\nThe new data:")
         print(data)
         print("")
