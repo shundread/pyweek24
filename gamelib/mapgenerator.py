@@ -96,7 +96,10 @@ def generate_map(game_data):
 
             structures["trees"].append((x, y))
 
-        # TODO spawn trees, bushes & rocks
+        if len(area["monster_spawns"]) < SpawnsMonsters:
+            x = random.randint(lot.left, lot.right)
+            y = random.randint(lot.top, lot.bottom)
+            area["monster_spawns"].append((x, y))
 
     area["structures"] = structures
 

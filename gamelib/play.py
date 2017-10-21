@@ -13,6 +13,8 @@ ColorWindow = (0, 0, 255)
 ColorHead = (200, 200, 0)
 ColorShirt = (30, 200, 40)
 ColorTree = (130, 110, 0)
+ColorMonster = (170, 0, 40)
+ColorMonsterParticle = (250, 35, 80)
 
 # Surface info
 Size = (Width, Height) = (200, 200)
@@ -38,6 +40,8 @@ Pass = 0.40
 SizeHead = 4
 SizeShoulder = 4
 SizeTorso = 5
+
+SizeMonsterBlob = 6
 SizeTree = 8
 
 ScalePosition = 20
@@ -102,9 +106,16 @@ def generate_map(game_data):
             "state": "hiding",
         })
 
-
     # Place the monsters
-    # TODO
+    game_data["monsters"] = []
+    for (n, (x, y)) in enumerate(game_data["map"]["monster_spawns"]):
+        game_data["monsters"].append({
+            "position": (x * ScalePosition, y * ScalePosition),
+            "next_position": (x * ScalePosition, y * ScalePosition),
+            "angle": n,
+            "state": "resting",
+            "timer": 0,
+        })
 
 
 def draw_minimap(game_data):
@@ -372,6 +383,10 @@ def render(game_data):
         drawcharacter(realworld, ColorHead, ColorShirt, camera, position, angle)
 
     # TODO draw the monsters
+    for monster in game_data["monsters"]:
+        position = get_render_position(monster)
+        angle = monster["angle"]
+        drawmonster(realworld, camera, position, game_data["miliseconds"])
 
     # Draw the player
     drawcharacter(realworld, ColorHead, ColorShirt, camera, player_position, mouse_angle)
@@ -457,6 +472,9 @@ def drawpoly(surface, color, (cx, cy), points):
     transposed = [(x - cx, y - cy) for (x, y) in points]
     pygame.draw.polygon(surface, color, transposed)
 
+def drawpixel(surface, color, (cx, cy), (px, py)):
+    surface.set_at((px - cx, py - cy), color)
+
 def drawcharacter(surface, color_head, color_shirt, camera, position, angle):
     (px, py) = position
     shoulder_left = (
@@ -471,6 +489,18 @@ def drawcharacter(surface, color_head, color_shirt, camera, position, angle):
     drawcircle(surface, color_shirt, camera, shoulder_right, SizeShoulder)
     drawcircle(surface, color_shirt, camera, position, SizeTorso)
     drawcircle(surface, color_head, camera, position, SizeHead)
+
+def drawmonster(surface, camera, (x, y), miliseconds):
+    t = miliseconds / 1000.0
+    for i in range(5):
+        angle = (i * (t + i) * math.pi / 5)
+        (dx, dy) = (int(math.cos(angle) * 5), int(math.sin(angle) * 5))
+        drawcircle(surface, ColorMonster, camera, (x + dx, y + dy), SizeMonsterBlob)
+    for p in range(20):
+        angle = random.random() * 2 * math.pi
+        distance = random.randint(0, 8)
+        (dx, dy) = (int(math.cos(angle) * distance), int(math.sin(angle) * distance))
+        drawpixel(surface, ColorMonsterParticle, camera, (x + dx, y + dy))
 
 def cast_shadow(surface, color, camera, (lx, ly), (x1, y1, x2, y2)):
     dy = y1 - ly
