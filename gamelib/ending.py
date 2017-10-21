@@ -25,48 +25,47 @@ def init():
     resources["black"].fill(Black)
     resources["realworld"] = resources["black"]
 
-     ###########################
-    # Render the intro screen #
-    ###########################
-    intro = pygame.surface.Surface(Size)
-    intro.fill(Black)
-
     # Background story
+    set_text([
+        "We run into the night",
+        "with haste, escaping",
+        "the blind monsters",
+        "",
+        "No matter how far we",
+        "have to go, or what",
+        "threats we face, I",
+        "will protect us all",
+    ])
+
+def set_text(lines):
+    surface = pygame.surface.Surface(Size)
+    surface.fill(Black)
     font = pygame.font.SysFont("mono", 12, bold=True)
-    lines = [
-        "A strange darkness has",
-        "descended into the area",
-        "",
-        "Blind monsters are roaming",
-        "about, listening for prey",
-        "",
-        "I must find my family and",
-        "quietly lead safely to the",
-        "exit on the south"
-    ]
+
     for (n, line) in enumerate(lines):
         text = font.render(line, False, White)
         (w, h) = text.get_size()
         x = int((Width - w) * 0.5)
         y = int(Height * 0.2) + (n * h)
-        intro.blit(text, (x, y))
-    resources["intro"] = intro
+        surface.blit(text, (x, y))
 
-FadeInIntro = 1000
-FadeOutIntro = FadeInIntro + 10000
+    resources["text"] = surface
+
+FadeInEnding = 1000
+FadeOutEnding = FadeInEnding + 10000
 
 def handle_key(game, data, event):
-    data["miliseconds"] += FadeOutIntro
+    data["miliseconds"] += FadeOutEnding
 
 def simulate(game, data, dt):
     data["miliseconds"] += dt
 
-    if data["miliseconds"] < FadeInIntro:
+    if data["miliseconds"] < FadeInEnding:
         resources["realworld"] = resources["black"]
-    elif data["miliseconds"] < FadeOutIntro:
-        resources["realworld"] = resources["intro"]
+    elif data["miliseconds"] < FadeOutEnding:
+        resources["realworld"] = resources["text"]
     else:
-        game.data["gamestate"] = "newgame"
+        game.data["gamestate"] = "newtitle"
 
 def render(data):
     vision = resources["vision"]
@@ -87,4 +86,5 @@ def render(data):
 
 def handle_swap(game):
     init()
-    game.data["intro"] = reset_data()
+    game.data[""]
+    pass

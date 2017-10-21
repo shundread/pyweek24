@@ -18,7 +18,7 @@ class Game(object):
 
     def __init__(self):
         self.running = False
-        self.data = {}
+        self.data = { "gamestate": "newtitle" }
 
         # Swapping state
         self.swapped = False

@@ -23,6 +23,7 @@ def init():
     ###########################
     resources["black"] = pygame.surface.Surface(Size)
     resources["black"].fill(Black)
+    resources["realworld"] = resources["black"]
 
     ################################
     # Render the real title screen #

@@ -4,6 +4,7 @@ import pygame
 import titlescreen
 import play
 import intro
+import ending
 
 def init():
     try:
@@ -17,7 +18,6 @@ def init():
             pygame.MOUSEMOTION
         ])
         titlescreen.init()
-        play.init()
     except Exception as error:
         print("Unable to (re) initialize the module, reason:\n{0}".format(error))
         raise error
@@ -61,38 +61,48 @@ def simulate(game, data, dt):
     gamestate = data["gamestate"]
 
     # Title #
-    if (gamestate == "newtitle"):
+    if gamestate == "newtitle":
         data["title"] = titlescreen.reset_data()
         titlescreen.init()
         data["gamestate"] = "title"
-    if (gamestate == "title"):
+    if gamestate == "title":
         return titlescreen.simulate(game, data["title"], dt)
 
     # Intro #
-    if (gamestate == "newintro"):
+    if gamestate == "newintro":
         data["intro"] = intro.reset_data()
         intro.init()
         data["gamestate"] = "intro"
-    if (gamestate == "intro"):
+    if gamestate == "intro":
         return intro.simulate(game, data["intro"], dt)
 
     # New game #
-    if (gamestate == "newgame"):
+    if gamestate == "newgame":
         data["game"] = play.reset_data()
         play.init()
         play.generate_map(data["game"])
         data["gamestate"] = "game"
-    if (gamestate == "game"):
+    if gamestate == "game":
         return play.simulate(game, data["game"], dt)
+
+    # Ending #
+    if gamestate == "newending":
+        data["ending"] = ending.reset_data()
+        ending.init()
+        data["gamestate"] = "ending"
+    if gamestate == "ending":
+        return ending.simulate(game, data["ending"], dt)
 
 def render(data):
     gamestate = data["gamestate"]
-    if (gamestate == "title"):
+    if gamestate == "title":
         return titlescreen.render(data["title"])
-    if (gamestate == "intro"):
+    if gamestate == "intro":
         return intro.render(data["intro"])
-    if (gamestate == "game"):
+    if gamestate == "game":
         return play.render(data["game"])
+    if gamestate == "ending":
+        return ending.render(data["ending"])
 
 def handle_swap(game, data):
     try:
@@ -110,6 +120,12 @@ def handle_swap(game, data):
         reload(play)
         play.handle_swap(game)
         print("Play module swapped")
+
+        print("Attempting to swap ending module")
+        reload(ending)
+        ending.handle_swap(game)
+        print("Swapped ending module")
+
     except Exception as error:
         print("Unable to swap the submodules, reason:")
         print(error)

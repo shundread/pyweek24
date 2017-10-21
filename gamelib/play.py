@@ -37,15 +37,15 @@ Pass = 0.40
 SizeHead = 4
 SizeShoulder = 4
 
-PositionScale = 20
+ScalePosition = 20
 
 # Collision box sizes
-BoxPerson = 12 * PositionScale
+BoxPerson = 12 * ScalePosition
 
 # Distances
-DistanceRescue = 30 * PositionScale
-DistanceFollow = 28 * PositionScale
-DistanceInteract = 20 * PositionScale
+DistanceRescue = 30 * ScalePosition
+DistanceFollow = 28 * ScalePosition
+DistanceInteract = 20 * ScalePosition
 
 # Speeds
 SpeedPerson = 4
@@ -87,13 +87,13 @@ def generate_map(game_data):
     # Place the player & other family members
     family_spawns = game_data["map"]["family_spawns"]
     (x, y) = family_spawns.pop()
-    set_position(game_data["player"], (x * PositionScale, y * PositionScale))
+    set_position(game_data["player"], (x * ScalePosition, y * ScalePosition))
 
     game_data["characters"] = []
     for (n, (x, y)) in enumerate(game_data["map"]["family_spawns"]):
         game_data["characters"].append({
-            "position": (x * PositionScale, y * PositionScale),
-            "next_position": (x * PositionScale, y * PositionScale),
+            "position": (x * ScalePosition, y * ScalePosition),
+            "next_position": (x * ScalePosition, y * ScalePosition),
             "angle": n,
             "state": "hiding",
         })
@@ -152,7 +152,7 @@ def open_passage(game_data, passages, force):
     player_position = get_position(game_data["player"])
     for (i, item) in enumerate(passages):
         (x0, y0, x1, y1, locked) = item
-        (x, y) = (0.5 * PositionScale * (x0 + x1), 0.5 * PositionScale * (y0 + y1))
+        (x, y) = (0.5 * ScalePosition * (x0 + x1), 0.5 * ScalePosition * (y0 + y1))
         distance = point_point_distance(player_position, (x, y))
         if distance < DistanceInteract:
             if force:
@@ -174,6 +174,9 @@ def simulate(game, game_data, dt):
 
     player = game_data["player"]
     player_position = (px, py) = get_position(player)
+
+    if check_game_over(game, game_data):
+        return
 
     # Simulate characters
     characters = game_data["characters"]
@@ -236,7 +239,7 @@ def simulate(game, game_data, dt):
 
     barrier_rects = []
     for unscaled_line in line_barriers:
-        scaled_line = [v * PositionScale for v in unscaled_line[0:4]]
+        scaled_line = [v * ScalePosition for v in unscaled_line[0:4]]
         barrier_rects.append(line_to_rect(*scaled_line))
 
     for character in game_data["characters"] + [player]:
@@ -271,6 +274,12 @@ def simulate(game, game_data, dt):
 
         set_position(character, (x + dx, y + dy))
         set_next_position(character, (x + dx, y + dy))
+
+def check_game_over(game, game_data):
+    (x, y) = get_render_position(game_data["player"])
+    if y > mapgenerator.MapHeight + 100:
+        game.data["gamestate"] = "newending"
+        return True
 
 def point_point_distance((x0, y0), (x1, y1)):
     return ((x1 - x0) ** 2 + (y1 - y0) ** 2) ** 0.5
@@ -450,8 +459,8 @@ def get_mouse_angle(dx, dy):
 def get_render_position(entity):
     (x, y) = entity["position"]
     return (
-        int(round(float(x) / PositionScale)),
-        int(round(float(y) / PositionScale))
+        int(round(float(x) / ScalePosition)),
+        int(round(float(y) / ScalePosition))
     )
 
 def get_position(entity):
